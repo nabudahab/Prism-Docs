@@ -1,15 +1,17 @@
 /* System bus, asynchronous peripherals and interrupt return: a state model of
-   one representative teaching composition assembled from Prism RTL.
+   one Prism configuration assembled from its RTL.
 
-   The composition is not a shipped SoC configuration. It is the Base core
-   tile, the direct fabric, system_bus, ASYNC_PERIPHERALS=1 (mmio_cdc plus the
-   two-flop interrupt synchronizers in system.sv), timer, IRQ controller,
-   two GPIO banks, UART and SPI. PWM is not installed in this teaching model.
-   Other standard devices are omitted from this teaching composition; their
-   references do not imply simulated behavior here. Reserved regions, storage sizes and interrupt bits are read from the
-   pinned address map (PRISM_REFERENCE.memory); manifest facts below are
-   transcribed from source/soc/peripherals/*.toml and checked against a Prism
-   checkout by qa/bus-diagrams/check-model.cjs.
+   The configuration is the supplied SoC manifest (configs/base.toml) with its
+   spi0 and timer0 blocks removed, in the supplied system manifest
+   (configs/system.toml), whose separate cpu and peripheral clocks make the
+   builder set ASYNC_PERIPHERALS=1 (mmio_cdc plus the two-flop interrupt
+   synchronizers in system.sv). That leaves the Base core tile, the direct
+   fabric, system_bus, two interrupt sources (uart0 on irq0 source 2, gpio0 on
+   source 0) and the interrupt controller irq0. Other standard devices are not
+   installed; their reservations answer with the decoder's error. Reserved
+   regions, storage sizes and interrupt bits are read from the pinned address
+   map (PRISM_REFERENCE.memory); manifest facts below are transcribed from
+   source/soc/peripherals/<device>/component.toml.
 
    Modelled register effects follow device RTL for 32-bit lw/sw accesses; SPI
    excludes QSPI segments and models only the COMPLETE interrupt bit.
@@ -24,32 +26,32 @@
 (function (root) {
   'use strict';
 
-  var PER = 'source/soc/peripherals/rtl/';
+  var PER = 'source/soc/peripherals/';
   var BUS = 'source/soc/buses/rtl/';
 
   // Modelled windows, manifest alignment and RTL top. SPI models its 28-byte
   // classic subset; the canonical component has a 60-byte window with segments.
   var COMPONENTS = {
-    timer: { top: 'timer', bytes: 16, align: 8, irq: 'timer', software: 'prism_timer_registers_v1', rtl: PER + 'timer.sv' },
-    irq: { top: 'irq_controller', bytes: 384, align: 512, irq: 'controller', software: 'prism_irq_registers_v1', rtl: PER + 'irq_controller.sv' },
-    gpio: { top: 'gpio', bytes: 40, align: 64, irq: 'external', software: 'prism_gpio_registers_v1', rtl: PER + 'gpio.sv' },
-    uart: { top: 'uart', bytes: 24, align: 32, irq: 'external', software: 'prism_uart_registers_v1', rtl: PER + 'uart.sv' },
-    spi: { top: 'spi', bytes: 28, sourceBytes: 60, align: 64, irq: 'external', software: 'prism_spi_registers_v1', rtl: PER + 'spi.sv' }
+    timer: { top: 'timer', bytes: 16, align: 8, irq: 'timer', software: 'prism_timer_registers_v1', rtl: PER + 'timer/rtl/timer.sv', manifest: PER + 'timer/component.toml' },
+    irq: { top: 'irq_controller', bytes: 384, align: 512, irq: 'controller', software: 'prism_irq_registers_v1', rtl: PER + 'interrupt_controller/rtl/irq_controller.sv', manifest: PER + 'interrupt_controller/component.toml' },
+    gpio: { top: 'gpio', bytes: 40, align: 64, irq: 'external', software: 'prism_gpio_registers_v1', rtl: PER + 'gpio/rtl/gpio.sv', manifest: PER + 'gpio/component.toml' },
+    uart: { top: 'uart', bytes: 24, align: 32, irq: 'external', software: 'prism_uart_registers_v1', rtl: PER + 'uart/rtl/uart.sv', manifest: PER + 'uart/component.toml' },
+    spi: { top: 'spi', bytes: 28, sourceBytes: 60, align: 64, irq: 'external', software: 'prism_spi_registers_v1', rtl: PER + 'spi/rtl/spi.sv', manifest: PER + 'spi/component.toml' }
   };
 
-  // The representative composition, in its devices[] order.
+  // The depicted SoC's [peripherals] blocks, in manifest (devices[]) order:
+  // configs/base.toml without spi0 and timer0.
   var INSTANCES = [
-    { name: 'timer0', component: 'timer', region: 'timer', irq: 'timer' },
-    { name: 'irq0', component: 'irq', region: 'irq', irq: null },
-    { name: 'gpio_a', component: 'gpio', region: 'gpio_a', irq: 'gpio_a', bank: 'a', pins: 'gpio_in, gpio_out, gpio_oe' },
     { name: 'uart0', component: 'uart', region: 'uart', irq: 'uart', pins: 'uart_rx, uart_tx' },
-    { name: 'spi0', component: 'spi', region: 'spi', irq: 'spi', pins: 'spi_miso, spi_mosi, spi_sck, spi_cs_n' },
-    { name: 'gpio_b', component: 'gpio', region: 'gpio_b', irq: 'gpio_b', bank: 'b', pins: 'gpio_b_in, gpio_b_out, gpio_b_oe' }
+    { name: 'gpio0', component: 'gpio', region: 'gpio_a', irq: 'gpio_a', bank: 'a', pins: 'gpio_in, gpio_out, gpio_oe' },
+    { name: 'irq0', component: 'irq', region: 'irq', irq: null }
   ];
 
-  // Base D-cache geometry (source/core_tiles/base/rtl/caches/dcache.sv):
-  // 8 sets x 2 ways x 16-byte lines, write-back, write-allocate, one LRU bit.
+  // probed_data D-cache (source/caches/probed_data/rtl/dcache_uarch_pkg.vh):
+  // DIDX_W = 3 gives 8 sets x 2 ways x 16-byte lines, write-back,
+  // write-allocate, one LRU bit; STORE_QUEUE_SIZE = 4 queued stores.
   var DSETS = 8;
+  var STORE_QUEUE_SIZE = 4;
 
   // Machine trap causes (source/contracts/packages/trap_causes_pkg.vh).
   var CAUSE = {
@@ -123,6 +125,7 @@
     var installedRegions = {};
     devices.forEach(function (d) { installedRegions[d.region.id] = d; });
     var L = {
+      hasTimer: devices.some(function (d) { return d.component === 'timer'; }),
       ram: { base: ram.base >>> 0, bytes: ram.bytes, reserved: ram.reserved_bytes, last: ram.last >>> 0 },
       rom: { base: rom.base >>> 0, bytes: rom.bytes, reserved: rom.reserved_bytes, last: rom.last >>> 0 },
       mmio: { base: memory.aperture.base >>> 0, bytes: memory.aperture.bytes, last: (memory.aperture.base + memory.aperture.bytes - 1) >>> 0 },
@@ -133,7 +136,8 @@
   }
 
   function makeSoc(L) {
-    var gpioOf = { a: L.byName.gpio_a, b: L.byName.gpio_b };
+    var gpioOf = {};
+    L.devices.forEach(function (d) { if (d.bank) gpioOf[d.bank] = d; });
 
     /* ---------- reset state ---------- */
     function initial() {
@@ -145,6 +149,7 @@
         time: 0,
         ram: {},
         dcache: sets,
+        sq: [],
         cdc: { state: 'IDLE', req: 0, ack: 0, reqSync: 0, ackSync: 0, active: 0 },
         gpio: { a: gpio(), b: gpio() },
         uart: { divider: 868, ie: 0, txBusy: false, txCount: 0, txBits: 0, txByte: 0, txDone: false, rxByte: 0, rxValid: false, overrun: false, frameError: false, sent: [] },
@@ -165,8 +170,8 @@
       st.uart.ie = 1;
       st.spi.ie = true;
       st.irq.enable = L.present;
-      st.timer.mtimecmp = BigInt(PRESET_TIMER_GAP);
-      st.cpu.MEIE = true; st.cpu.MTIE = true; st.cpu.mstatusMIE = true;
+      if (L.hasTimer) st.timer.mtimecmp = BigInt(PRESET_TIMER_GAP);
+      st.cpu.MEIE = true; st.cpu.MTIE = L.hasTimer; st.cpu.mstatusMIE = true;
       var lv = levels(st);
       st.cpu.extSync = lv.ext ? [1, 1] : [0, 0]; st.cpu.MEIP = lv.ext;
       st.cpu.timSync = lv.tim ? [1, 1] : [0, 0]; st.cpu.MTIP = lv.tim;
@@ -184,7 +189,7 @@
     function uartPending(u) { return (u.frameError ? 8 : 0) | (u.overrun ? 4 : 0) | (u.txDone ? 2 : 0) | (u.rxValid ? 1 : 0); }
     function uartIrq(u) { return (uartPending(u) & u.ie) !== 0; }
     function spiIrq(p) { return p.ie && p.rxValid; }
-    function timerIrq(st) { return st.timer.mtime >= st.timer.mtimecmp; }
+    function timerIrq(st) { return L.hasTimer && st.timer.mtime >= st.timer.mtimecmp; }
     function deviceIrq(st, d) {
       if (d.component === 'gpio') return gpioIrq(st.gpio[d.bank]);
       if (d.component === 'uart') return uartIrq(st.uart);
@@ -207,6 +212,27 @@
         if ((active >>> s) & 1 && (winner === 0 || st.irq.prio[s] >= best)) { winner = s + 1; best = st.irq.prio[s]; }
       }
       return { pending: pending, active: active, winner: winner, irq: active !== 0 };
+    }
+    // irq0's choice among ACTIVE sources, with the rule that decided it.
+    function arbitration(st) {
+      var v = irqView(st), list = [];
+      L.sources.forEach(function (d) { if ((v.active >>> d.bit) & 1) list.push({ name: d.name, bit: d.bit, id: d.id, prio: st.irq.prio[d.bit] }); });
+      var win = list.filter(function (x) { return x.id === v.winner; })[0] || null;
+      var why = '';
+      if (list.length === 1) why = 'it is the only ACTIVE source';
+      else if (list.length > 1 && win) {
+        var top = list.filter(function (x) { return x.prio === win.prio; });
+        why = top.length > 1 ? 'equal PRIORITY ' + win.prio + ': the tie goes to the lower source number'
+          : 'PRIORITY_' + win.bit + ' = ' + win.prio + ' is the highest';
+      }
+      return { active: list, winner: win, why: why };
+    }
+    function arbitrationText(st) {
+      var a = arbitration(st);
+      if (!a.active.length) return 'irq0 has no ACTIVE source.';
+      if (a.active.length === 1) return 'irq0: ' + a.winner.name + ' (ID ' + a.winner.id + ') is the only ACTIVE source.';
+      return 'irq0: ' + a.active.map(function (x) { return x.name + ' (source ' + x.bit + ', priority ' + x.prio + ')'; }).join(' and ') + ' are ACTIVE. A claim returns ' +
+        a.winner.name + ' (ID ' + a.winner.id + '): ' + a.why + '.';
     }
     function levels(st) { return { ext: irqView(st).irq, tim: timerIrq(st) }; }
     function eligible(st) {
@@ -468,7 +494,7 @@
           return r;
         }
         r.apply = function (s) {
-          var q = s.irq, read;
+          var q = s.irq, read, arb = arbitration(s);
           if (index === 0) read = v.pending;
           else if (index === 2) read = v.active;
           else if (index === 5) read = L.present;
@@ -479,7 +505,9 @@
             if (index === 6) {
               if (v.winner) {
                 q.inService = (q.inService | (1 << (v.winner - 1))) >>> 0;
-                r.effects.push('CURRENT_IRQ returns ID ' + v.winner + ' (source ' + (v.winner - 1) + ', ' + srcName(v.winner - 1) + ') and marks it in service. ACTIVE now excludes it.');
+                r.effects.push('CURRENT_IRQ returns ID ' + v.winner + ' (source ' + (v.winner - 1) + ', ' + srcName(v.winner - 1) + ') and marks it in service' + (arb.why ? ' (' + arb.why + ')' : '') + '. ACTIVE now excludes it.');
+                var others = arb.active.filter(function (x) { return x.id !== v.winner; });
+                if (others.length) r.effects.push(others.map(function (x) { return x.name + ' (ID ' + x.id + ')'; }).join(', ') + ' stays pending and ACTIVE, so irq0 keeps its output at 1. A later claim returns it.');
                 r.effects.push('The claim does not touch the device: its irq level stays as it is until software clears the cause there.');
                 r.claimed = v.winner;
               } else { r.claimed = 0; r.effects.push('CURRENT_IRQ returns 0: no ACTIVE source. Nothing is claimed.'); }
@@ -536,7 +564,7 @@
       var list = [];
       if (st.uart.txBusy) list.push({ kind: 'uart-tx', at: uartLeft(st.uart) });
       if (st.spi.busy) list.push({ kind: 'spi', at: spiLeft(st.spi) });
-      if (st.timer.mtime < st.timer.mtimecmp) {
+      if (L.hasTimer && st.timer.mtime < st.timer.mtimecmp) {
         var gap = st.timer.mtimecmp - st.timer.mtime;
         if (gap <= BigInt(1e12)) list.push({ kind: 'timer', at: Number(gap) });
       }
@@ -645,7 +673,7 @@
     }
 
     // CPU side: two clk flops per level, then csr_file samples mip on the
-    // falling edge; trap entry follows when MIE && (mie & mip).
+    // rising edge; trap entry follows when MIE && (mie & mip).
     function settle(ctx) {
       var st = ctx.st, c = st.cpu, guard = 0;
       while (guard++ < 8) {
@@ -676,8 +704,8 @@
           if (c.MEIP !== meip) textC.push('mip.MEIP ← ' + (meip ? 1 : 0) + '.');
           if (c.MTIP !== mtip) textC.push('mip.MTIP ← ' + (mtip ? 1 : 0) + '.');
           c.MEIP = meip; c.MTIP = mtip;
-          var mipTitle = 'Falling clk edge: ' + [textC.length > 0 && textC[0].indexOf('MEIP') >= 0 ? 'mip.MEIP = ' + (meip ? 1 : 0) : null, textC.join(' ').indexOf('MTIP') >= 0 ? 'mip.MTIP = ' + (mtip ? 1 : 0) : null].filter(Boolean).join(', ') + (eligible(st) ? ' → eligible' : '');
-          textC.push('csr_file samples the levels on the falling clk edge, whatever the enables are. Software writes to mip cannot clear them; only the source can.');
+          var mipTitle = 'Rising clk edge: ' + [textC.length > 0 && textC[0].indexOf('MEIP') >= 0 ? 'mip.MEIP = ' + (meip ? 1 : 0) : null, textC.join(' ').indexOf('MTIP') >= 0 ? 'mip.MTIP = ' + (mtip ? 1 : 0) : null].filter(Boolean).join(', ') + (eligible(st) ? ' → eligible' : '');
+          textC.push('csr_file samples the levels on every rising clk edge, whatever the enables are, and registers the eligibility summary on the same edge. Software writes to mip cannot clear them; only the source can.');
           textC.push(eligibilityText(st));
           ctx.step({ group: 'irq-mip', title: mipTitle, kind: 'cpu', parts: ['csr'], text: textC });
           continue;
@@ -713,15 +741,15 @@
       if (!fault) {
         ctx.step({ group: 'trap', title: 'Core accepts the interrupt after older MEM/WB work drains', kind: 'cpu', parts: ['csr', 'core'],
           text: ['csr_file reports interrupt_pending. Base holds IF/ID/EX and lets older MEM/WB work drain (a blocking access in MEM finishes first), then registers the trap request on a rising clk edge.',
-            'Priority among enabled pending levels: write-back error, external (MEIP), software, timer (MTIP). Here: ' + CAUSE_NAME[cause] + '.'] });
+            'Base CPU cause priority among enabled pending mip bits: write-back error (16), external (11), software (3), timer (7). Here: ' + CAUSE_NAME[cause] + '. This is the core’s choice between interrupt lines; which device the external line stands for is irq0’s separate arbitration, settled later by the claim.',
+            arbitrationText(st)] });
       }
       c.mstatusMPIE = c.mstatusMIE; c.mstatusMIE = false;
       c.mcause = cause; c.mtval = mtval; c.mepc = fault ? 'the faulting ' + fault.instr : 'the oldest unexecuted instruction';
       c.context = 'handler';
       ctx.step({ group: 'trap', title: (fault ? 'Exception: ' : 'Trap: ') + 'mcause ' + hex32(cause) + ', MIE ← 0, PC ← mtvec', kind: 'cpu', parts: ['csr', 'core'], flows: [{ wire: 'w_trap', dir: 'req', label: 'mtvec' }],
-        text: ['Falling clk edge: mepc ← PC of ' + c.mepc + '; mcause ← ' + hex32(cause) + ' (' + CAUSE_NAME[cause] + '); mtval ← ' + hex32(mtval) + '; mstatus.MPIE ← ' + (c.mstatusMPIE ? 1 : 0) + '; MIE ← 0.',
-          'Next rising edge: younger work is squashed and fetch restarts at mtvec (direct mode; firmware sets the handler address).',
-          fault ? 'A real handler would fix or skip the faulting instruction before mret.' : 'Nothing has acknowledged the interrupt: the level is still high in mip. With MIE = 0 the core does not take it again; the handler claims and clears it.'] });
+        text: ['The next rising clk edge applies the accepted request: mepc ← PC of ' + c.mepc + '; mcause ← ' + hex32(cause) + ' (' + CAUSE_NAME[cause] + '); mtval ← ' + hex32(mtval) + '; mstatus.MPIE ← ' + (c.mstatusMPIE ? 1 : 0) + '; MIE ← 0. On the same edge younger work is squashed and fetch restarts at mtvec (direct mode; firmware sets the handler address).',
+          fault ? 'A real handler would fix or skip the faulting instruction before mret.' : 'Nothing has acknowledged the interrupt: trap entry does not clear a device’s level or irq0’s PENDING bits, so mip.MEIP is still 1. With MIE = 0 the core does not take it again; the handler claims and clears it.'] });
     }
 
     /* ---------- actions ---------- */
@@ -759,12 +787,107 @@
 
     function lineAddr(tag, idx) { return ((tag << 7) | (idx << 4)) >>> 0; }
     function ramWord(st, a) { return st.ram[a >>> 0] >>> 0 || 0; }
+    // Store queue (store_queue.sv): completed stores ahead of the cache, oldest first.
+    function queued(st, ea) {
+      var hit = -1;
+      st.sq.forEach(function (e, i) { if (e.address === (ea & ~3) >>> 0) hit = i; });
+      return hit;
+    }
+    function sqText(st) { return st.sq.length + ' of ' + STORE_QUEUE_SIZE + ' entries in use'; }
+    // The head store drains: merge into its resident line, or write-allocate it.
+    function drainOne(ctx, why) {
+      var st = ctx.st, e = st.sq[0];
+      var idx = (e.address >>> 4) & 7, tag = e.address >>> 7, word = (e.address >>> 2) & 3, set = st.dcache[idx];
+      var hitWay = -1;
+      set.ways.forEach(function (w, i) { if (w.valid && w.tag === tag) hitWay = i; });
+      if (hitWay >= 0) {
+        st.sq.shift();
+        set.ways[hitWay].data[word] = e.value; set.ways[hitWay].dirty = true; set.lru = 1 - hitWay;
+        ctx.step({ group: 'drain', title: 'Store queue drains ' + hex32(e.address) + ' into its resident line', kind: 'bus', parts: ['caches', 'lane_line'],
+          text: [why + ' The oldest queued store’s line is resident (set ' + idx + ', way ' + hitWay + '), so it merges in one edge and the line becomes dirty. Queue: ' + sqText(st) + '.'] });
+        return;
+      }
+      ctx.step({ group: 'drain', title: 'Store queue drains ' + hex32(e.address) + ': write-allocate refill', kind: 'bus', parts: ['caches', 'lane_line'],
+        text: [why + ' The oldest queued store’s line is not resident, so the cache allocates it as for a miss: write back a dirty victim, refill two beats, then merge the store.'] });
+      var ok = allocate(ctx, idx, tag, null);
+      st.sq.shift();
+      if (ok >= 0) { set.ways[ok].data[word] = e.value; set.ways[ok].dirty = true; }
+      ctx.step({ group: 'drain', title: 'Queued store merged; queue: ' + sqText(st), kind: 'bus', parts: ['caches', 'lane_line'],
+        text: ['The refilled line takes the store’s bytes and is dirty. The store itself completed long ago, when it entered the queue.'] });
+    }
+    function drainAll(ctx, why) {
+      var guard = 0;
+      while (ctx.st.sq.length && guard++ < STORE_QUEUE_SIZE + 1) drainOne(ctx, why);
+    }
+    // Victim write-back and two refill beats for set idx; returns the way, or -1 on a refill error.
+    function allocate(ctx, idx, tag, txn) {
+      var st = ctx.st, set = st.dcache[idx], victim = set.lru, v = set.ways[victim];
+      if (v.valid && v.dirty) {
+        var victimBase = lineAddr(v.tag, idx);
+        for (var half = 0; half < 2; half++) {
+          var wa = (victimBase + half * 8) >>> 0;
+          var d64 = (BigInt(v.data[half * 2 + 1] >>> 0) << B32) | BigInt(v.data[half * 2] >>> 0);
+          if (txn) txn.beats.push({ kind: half ? 'WB_HIGH' : 'WB_LOW', write: true, address: wa, mask: 0xFF, data: d64, response: 'ACCESS' });
+          memoryBeat(ctx, { write: true, address: wa, mask: 0xFF, data: d64, label: half ? 'WB_HIGH' : 'WB_LOW' });
+          st.ram[wa] = v.data[half * 2]; st.ram[(wa + 4) >>> 0] = v.data[half * 2 + 1];
+        }
+        v.dirty = false;
+      }
+      var base = lineAddr(tag, idx), filled = [];
+      for (var h = 0; h < 2; h++) {
+        var fa = (base + h * 8) >>> 0;
+        var ok = classify(fa).target === 'ram';
+        var data = ok ? (BigInt(ramWord(st, fa + 4)) << B32) | BigInt(ramWord(st, fa)) : null;
+        if (txn) txn.beats.push({ kind: h ? 'FILL_HIGH' : 'FILL_LOW', write: false, address: fa, mask: 0xFF, data: data, response: ok ? 'ACCESS' : 'ERROR' });
+        memoryBeat(ctx, { write: false, address: fa, mask: 0xFF, data: data, label: h ? 'FILL_HIGH' : 'FILL_LOW', hole: !ok });
+        if (!ok) { v.valid = false; return -1; }
+        filled.push(ramWord(st, fa), ramWord(st, fa + 4));
+      }
+      v.valid = true; v.tag = tag; v.data = filled; v.dirty = false;
+      set.lru = 1 - victim;
+      return victim;
+    }
     function cachedAccess(ctx, a, ea, cls) {
       var st = ctx.st, txn = ctx.txn, op = a.op;
       var idx = (ea >>> 4) & 7, tag = ea >>> 7, word = (ea >>> 2) & 3, set = st.dcache[idx];
       var hitWay = -1;
       set.ways.forEach(function (w, i) { if (w.valid && w.tag === tag) hitWay = i; });
       txn.path = 'cache';
+      var q = queued(st, ea);
+      // Word accesses: an overlapping queued word store always covers the load.
+      if (op === 'lw' && q >= 0) {
+        var youngest = -1;
+        st.sq.forEach(function (e, i) { if (e.address === (ea & ~3) >>> 0) youngest = i; });
+        txn.rd = st.sq[youngest].value; txn.cache = 'store queue'; txn.result = 'ACCESS';
+        txn.outcome = 'a0 ← ' + hex32(txn.rd) + ' forwarded from the store queue';
+        st.cpu.last = txn.outcome;
+        ctx.step({ group: 'cache', title: 'Load forwarded from the store queue', kind: 'bus', parts: ['caches', 'lane_line', 'core'], flows: [{ wire: 'w_core_cache', dir: 'req', label: 'LW ' + hex32(ea) }],
+          text: ['A queued store (entry ' + youngest + ') writes every byte of this word and is the youngest one that overlaps it, so the load completes with its data: a0 ← ' + hex32(txn.rd) + '. Neither the cache nor RAM is read.'] });
+        return;
+      }
+      if (op === 'sw' && (hitWay < 0 || q >= 0)) {
+        if (cls.target !== 'ram') {
+          txn.result = 'ERROR'; txn.outcome = 'Store access fault: the line is outside installed RAM';
+          ctx.step({ group: 'rsp-core', title: 'Store outside installed RAM: precise access fault', kind: 'bus', tone: 'error', parts: ['caches', 'core'], flows: [{ wire: 'w_core_cache', dir: 'rsp', label: 'fault' }],
+            text: ['The address is cacheable but past the ' + size(L.ram.bytes) + ' installed. A store that would join the queue there never does; the D-cache completes it with access_fault, a precise store access fault with mtval = ' + hex32(ea) + '.'] });
+          trapEntry(ctx, { cause: CAUSE.storeFault, mtval: ea, instr: txn.instr });
+          return;
+        }
+        if (st.sq.length >= STORE_QUEUE_SIZE) {
+          ctx.step({ group: 'cache', title: 'Store queue full: the store waits in MEM', kind: 'bus', parts: ['caches', 'core'], flows: [{ wire: 'w_core_cache', dir: 'req', label: 'SW ' + hex32(ea) }],
+            text: ['All ' + STORE_QUEUE_SIZE + ' entries hold completed stores. MEM completes nothing, so the cache is free to drain the oldest one; the store joins as soon as an entry frees.'] });
+          drainOne(ctx, 'MEM is waiting, so the cache drains.');
+        }
+        st.sq.push({ address: (ea & ~3) >>> 0, value: a.value >>> 0 });
+        txn.cache = 'store queue'; txn.result = 'ACCESS';
+        txn.outcome = 'Store completed into the store queue (' + sqText(st) + '); the cache and RAM change later';
+        st.cpu.last = txn.outcome;
+        ctx.step({ group: 'cache', title: 'Store completes into the store queue (' + sqText(st) + ')', kind: 'bus', parts: ['caches', 'lane_line', 'core'], flows: [{ wire: 'w_core_cache', dir: 'req', label: 'SW ' + hex32(ea) }, { wire: 'w_core_cache', dir: 'rsp', label: 'done' }],
+          text: [(hitWay < 0 ? 'The line is not resident. Instead of waiting for a refill, the store completes in MEM by joining the queue.' : 'The line is resident, but an older queued store writes the same word, so this store joins the queue behind it to keep their order.') +
+            ' That completion is the store’s effect point; the instruction then retires from WB as usual.',
+            'The cache drains queued stores in order whenever MEM gives it nothing to do. Loads that overlap a queued store take its data; uncached accesses and maintenance wait until the queue is empty.'] });
+        return;
+      }
       if (hitWay >= 0) {
         var line = set.ways[hitWay];
         if (op === 'lw') { txn.rd = line.data[word]; }
@@ -845,6 +968,11 @@
 
     function uncachedAccess(ctx, a, ea, cls) {
       var st = ctx.st, txn = ctx.txn, op = a.op;
+      if (st.sq.length) {
+        ctx.step({ group: 'drain', title: 'Uncached access waits for the store queue to empty', kind: 'bus', parts: ['caches', 'core'], flows: [{ wire: 'w_core_cache', dir: 'req', label: op.toUpperCase() + ' ' + hex32(ea) }],
+          text: ['The D-cache holds ' + sqText(st) + '. An uncached beat must not pass completed stores, so MEM waits while the cache drains them in order.'] });
+        drainAll(ctx, 'The uncached access is waiting.');
+      }
       var beat = beatOf(ea, op, a.value);
       txn.path = cls.target === 'mmio' ? 'mmio' : cls.target === 'rom' || cls.target === 'rom-hole' ? 'rom' : 'none';
       txn.beats.push({ kind: 'uncached', write: beat.write, address: beat.address, mask: beat.mask, data: beat.write ? beat.data : null, response: null });
@@ -1024,15 +1152,16 @@
       if (a.until === 'event') {
         var ev = nextEvent(st);
         if (!ev) {
-          ctx.step({ group: 'time', title: 'No device event is scheduled', kind: 'time', parts: [], text: ['No UART frame or SPI frame is in progress, and MTIME is already ≥ MTIMECMP (or the compare is too far away to wait for here).'] });
+          ctx.step({ group: 'time', title: 'No device event is scheduled', kind: 'time', parts: [], text: ['No UART frame is in progress, so nothing in this configuration is waiting for time to pass.'] });
           return;
         }
         n = ev.at;
       }
       var from = st.timer.mtime;
       advance(ctx, n);
-      ctx.step({ group: 'time', title: n + ' peripheral clocks pass', kind: 'time', parts: ['dev_timer0'],
-        text: ['MTIME ' + hex64(from) + ' → ' + hex64(st.timer.mtime) + '. In hardware MTIME counts every peripheral_clk edge; this page moves it only when you ask, during the CDC edges and device waits it counts, and during input events.'] });
+      ctx.step({ group: 'time', title: n + ' peripheral clocks pass', kind: 'time', parts: L.hasTimer ? ['dev_timer0'] : [],
+        text: [L.hasTimer ? 'MTIME ' + hex64(from) + ' → ' + hex64(st.timer.mtime) + '. In hardware MTIME counts every peripheral_clk edge; this page moves it only when you ask, during the CDC edges and device waits it counts, and during input events.'
+          : 'Peripheral time moves on by ' + n + ' peripheral_clk edges; a UART frame in progress advances with it.'] });
       settle(ctx);
     }
 
@@ -1043,7 +1172,7 @@
       var m = map[a.field];
       c[m[0]] = !!a.value;
       ctx.step({ group: 'csr', title: (a.value ? m[1] : m[2]) + ': ' + a.field + ' ← ' + (a.value ? 1 : 0), kind: 'cpu', parts: ['csr', 'core'],
-        text: ['A CSR instruction, not a bus access: the write lands in csr_file on a falling clk edge when it reaches WB.', eligibilityText(st)] });
+        text: ['A CSR instruction, not a bus access: the write lands in csr_file at the rising clk edge on which it retires from WB. Base holds the next instruction in decode until that write commits, so the new enable governs it.', eligibilityText(st)] });
       settle(ctx);
     }
 
@@ -1054,11 +1183,16 @@
       c.mstatusMIE = c.mstatusMPIE; c.mstatusMPIE = true;
       c.context = 'main';
       ctx.step({ group: 'mret', title: 'mret: MIE ← MPIE (' + (c.mstatusMIE ? 1 : 0) + '), MPIE ← 1, PC ← mepc', kind: 'cpu', parts: ['csr', 'core'], flows: [{ wire: 'w_trap', dir: 'req', label: 'mepc' }],
-        text: [(was === 'handler' ? 'The handler returns to ' + c.mepc + '. ' : 'mret outside a handler still applies the same CSR transformation. ') + 'Nothing here touches irq0 or any device.', eligibilityText(st) +
+        text: [(was === 'handler' ? 'The handler returns to ' + c.mepc + '. ' : 'mret outside a handler still applies the same CSR transformation. ') + 'mret carries the MEPC target from EX through MEM to WB; the rising edge on which it retires restores mstatus and redirects fetch together. Nothing here touches irq0 or any device.', eligibilityText(st) +
           (eligible(st) ? ' A level that is still asserted traps again immediately.' : '')] });
       settle(ctx);
     }
 
+    function drainAction(ctx) {
+      ctx.txn = null;
+      if (!ctx.st.sq.length) { ctx.step({ group: 'drain', title: 'The store queue is empty', kind: 'bus', parts: ['caches'], text: ['Nothing to drain.'] }); return; }
+      drainOne(ctx, 'MEM has nothing for the cache this cycle, so the cache drains.');
+    }
     function noteAction(ctx, a) {
       ctx.txn = null;
       ctx.step({ group: 'note-' + ctx.steps.length, title: a.title, kind: 'note', parts: a.parts || [], text: a.text || [] });
@@ -1074,6 +1208,7 @@
       else if (action.type === 'csr') csrAction(ctx, action);
       else if (action.type === 'mret') mretAction(ctx);
       else if (action.type === 'note') noteAction(ctx, action);
+      else if (action.type === 'drain') drainAction(ctx);
       else if (action.type === 'spi-miso') spiMiso(ctx, action);
       else throw new Error('Unknown action ' + action.type);
       return { steps: ctx.steps, final: ctx.st, txn: ctx.txn };
@@ -1101,6 +1236,7 @@
       if (a.type === 'csr') return a.field + ' ← ' + (a.value ? 1 : 0);
       if (a.type === 'mret') return 'mret';
       if (a.type === 'note') return a.title;
+      if (a.type === 'drain') return 'The D-cache drains one queued store';
       return a.type;
     }
 
@@ -1116,6 +1252,9 @@
       describe: describe,
       beatOf: beatOf,
       irqView: irqView,
+      arbitration: arbitration,
+      arbitrationText: arbitrationText,
+      STORE_QUEUE_SIZE: STORE_QUEUE_SIZE,
       timerIrq: timerIrq,
       deviceIrq: deviceIrq,
       sourceLevels: sourceLevels,

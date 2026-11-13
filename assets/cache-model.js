@@ -1,14 +1,16 @@
 /* Local cache model for the Base core tile (owner: cache explorer).
  *
- * A transaction-level model of Prism's Base tile caches, written from
- *   source/core_tiles/base/rtl/caches/icache.sv
- *   source/core_tiles/base/rtl/caches/dcache.sv
- *   source/core_tiles/base/rtl/interfaces/{icache_if,dcache_if}.vh
- *   source/contracts/interfaces/cache_fabric_if.vh
+ * A transaction-level model of the Base tile's caches, written from
+ *   source/caches/instruction/rtl/icache.sv
+ *   source/caches/probed_data/rtl/{dcache.sv,store_queue.sv,dcache_uarch_pkg.vh}
+ *   source/contracts/interfaces/{icache_if,dcache_if,cache_fabric_if}.vh
  *   source/soc/packages/memory_map_pkg.vh
  * It is not the RTL. It reproduces the caches' architectural decisions (tag
  * compare, LRU victim, write-back/write-allocate, beat order, uncached bypass,
- * clean/invalidate) as a list of events, without cycle timing. Every function
+ * the store queue, clean/invalidate) as a list of events, without cycle
+ * timing. Queued stores drain when the caller says the cache is idle
+ * (drainStoreQueue), and whenever the RTL forces a drain: a full queue, a
+ * partially overlapping load, an uncached access or maintenance. Every function
  * is pure: states and events are plain JSON-serializable objects.
  *
  * Two memory environments back the model:
@@ -37,16 +39,19 @@
   'use strict';
 
   var RTL = {
-    icache: 'source/core_tiles/base/rtl/caches/icache.sv',
-    dcache: 'source/core_tiles/base/rtl/caches/dcache.sv',
-    dif: 'source/core_tiles/base/rtl/interfaces/dcache_if.vh',
-    iif: 'source/core_tiles/base/rtl/interfaces/icache_if.vh',
+    icache: 'source/caches/instruction/rtl/icache.sv',
+    dcache: 'source/caches/probed_data/rtl/dcache.sv',
+    queue: 'source/caches/probed_data/rtl/store_queue.sv',
+    dpkg: 'source/caches/probed_data/rtl/dcache_uarch_pkg.vh',
+    dif: 'source/contracts/interfaces/dcache_if.vh',
+    iif: 'source/contracts/interfaces/icache_if.vh',
     fabric: 'source/contracts/interfaces/cache_fabric_if.vh',
     map: 'source/soc/packages/memory_map_pkg.vh',
     datapath: 'source/core_tiles/base/rtl/pipeline/datapath.sv'
   };
 
-  /* core_uarch_pkg.vh: ITAG/IIDX/IBYT = 25/4/3; DTAG/DIDX/DBLK/DBYT = 25/3/2/2, two ways. */
+  /* icache_uarch_pkg.vh IIDX_W = 4; dcache_uarch_pkg.vh DIDX_W = 3, two ways, 16-byte lines. */
+  var STORE_QUEUE_SIZE = 4; // dcache_uarch_pkg.vh default; 0 removes the queue
   var GEOMETRY = {
     i: { lines: 16, lineBytes: 8, words: 2, bytes: 128, tag: [31, 7], index: [6, 3], word: [2, 2], byte: [1, 0] },
     d: { sets: 8, ways: 2, lineBytes: 16, words: 4, bytes: 256, tag: [31, 7], index: [6, 4], word: [3, 2], byte: [1, 0] }
@@ -67,9 +72,10 @@
       { id: 'i2c', base: 0x40040000, bytes: 65536 }, { id: 'gpio_b', base: 0x40070000, bytes: 4096 }
     ]
   };
-  /* The architecture tabs' teaching composition: every peripheral with RTL.
-     sysctrl and i2c are reserved regions without hardware. */
-  var TEACHING_DEVICES = ['timer', 'irq', 'gpio_a', 'uart', 'spi', 'gpio_b'];
+  /* The depicted SoC's installed peripherals (configs/base.toml without spi0
+     and timer0): uart0, gpio0 in the gpio_a region, and irq0. Every other
+     region is a reservation without hardware. */
+  var TEACHING_DEVICES = ['irq', 'gpio_a', 'uart'];
 
   function u32(n) { return n >>> 0; }
   function hex8(n) { return ('0000000' + (n >>> 0).toString(16)).slice(-8); }
@@ -90,17 +96,18 @@
 
   /* ---------- state ---------- */
 
-  function createState() {
+  function createState(options) {
+    var depth = options && typeof options.storeQueue === 'number' ? options.storeQueue : STORE_QUEUE_SIZE;
     var sets = [], lines = [];
     for (var s = 0; s < 8; s++) {
       sets.push({ lru: 0, ways: [0, 1].map(function () { return { valid: 0, dirty: 0, tag: 0, data: [0, 0, 0, 0] }; }) });
     }
     for (var l = 0; l < 16; l++) lines.push({ valid: 0, tag: 0, data: [0, 0] });
     return {
-      d: { sets: sets },
+      d: { sets: sets, sq: [], sqSize: depth },
       i: { lines: lines, fault: null },
       mem: {},          // written memory words: { 'xxxxxxxx' (aligned byte address): value }
-      tally: { dHit: 0, dMiss: 0, uncached: 0, writeback: 0, fill: 0, iHit: 0, iMiss: 0, fault: 0 }
+      tally: { dHit: 0, dMiss: 0, uncached: 0, writeback: 0, fill: 0, iHit: 0, iMiss: 0, fault: 0, queued: 0, forwarded: 0, drained: 0 }
     };
   }
 
@@ -246,6 +253,58 @@
 
   function lineView(way) { return { valid: way.valid, dirty: way.dirty, tag: way.tag }; }
 
+  /* ---------- D-cache store queue (store_queue.sv) ---------- */
+
+  function sqDepth(state) { return typeof state.d.sqSize === 'number' ? state.d.sqSize : STORE_QUEUE_SIZE; }
+  function sqText(state) { return state.d.sq.length + ' of ' + sqDepth(state) + ' entries in use'; }
+  function sqOverlaps(state, address, size) {
+    var word = u32(address & ~3), lanes = laneMask(size, address & 3) & 0xf, out = [];
+    (state.d.sq || []).forEach(function (e, i) { if (e.word === word && (e.lanes & lanes)) out.push(i); });
+    return { list: out, lanes: lanes };
+  }
+  /* The head store leaves the queue: merge into a resident line, or write-allocate it. */
+  function drainOne(state, r, env, why) {
+    var e = state.d.sq[0], f = splitD(e.address), set = state.d.sets[f.index];
+    var hitWay = set.ways[0].valid && set.ways[0].tag === f.tag ? 0 : set.ways[1].valid && set.ways[1].tag === f.tag ? 1 : -1;
+    state.tally.drained++;
+    if (hitWay >= 0) {
+      state.d.sq.shift();
+      var line = set.ways[hitWay], old = line.data[f.word], before = set.lru;
+      line.data[f.word] = mergeStore(old, e.data, e.size, f.byte); line.dirty = 1; set.lru = hitWay ? 0 : 1;
+      r.push({ kind: 'drain', cache: 'd', tone: 'dirty', title: 'Drain: ' + e.mnemonic + ' ' + hx(e.address) + ' merges into set ' + f.index + ' way ' + hitWay,
+        text: (why ? why + ' ' : '') + 'The oldest queued store hits a resident line (drain_hit), so it merges in one edge: ' + hx(old) + ' → ' + hx(line.data[f.word]) + '. The line becomes dirty and most recently used. Queue: ' + sqText(state) + '.',
+        source: [RTL.dcache + ': drain_request, drain_hit, queue_pop'], set: f.index, way: hitWay, words: [f.word], lru: { before: before, after: set.lru }, address: e.address, flow: null });
+      return;
+    }
+    r.push({ kind: 'drain', cache: 'd', tone: 'miss', title: 'Drain: ' + e.mnemonic + ' ' + hx(e.address) + ' needs its line',
+      text: (why ? why + ' ' : '') + 'The oldest queued store’s line is not resident (capture_drain). The cache allocates it like a store miss: write back a dirty victim, refill both beats and merge the store as the line arrives.',
+      source: [RTL.dcache + ': capture_drain, draining'], set: f.index, address: e.address, flow: null });
+    var filled = fillLine(state, r, env, f, true, e.data, e.size, e.mnemonic, true);
+    state.d.sq.shift();
+    if (!filled.fault) {
+      set.lru = filled.way ? 0 : 1;
+      r.push({ kind: 'drain', cache: 'd', tone: 'dirty', title: 'Drain done: the store is in way ' + filled.way + '; ' + sqText(state),
+        text: 'The refill completed and popped the head (drain_done); the line is dirty and its way is now the most recently used. The store itself completed earlier, when it entered the queue.',
+        source: [RTL.dcache + ': drain_done, queue_pop'], set: f.index, way: filled.way, words: [f.word], address: e.address, flow: null });
+    }
+  }
+  function drainAll(state, r, env, why) {
+    var first = true;
+    while (state.d.sq.length) { drainOne(state, r, env, first ? why : null); first = false; }
+  }
+  /* The cache has an idle cycle: drain up to count queued stores. */
+  function drainStoreQueue(state0, env, count, why) {
+    var state = clone(state0), r = new Recorder(state), n = 0;
+    while (state.d.sq.length && n < (count || 1)) { drainOne(state, r, env, n ? null : (why || 'MEM gives the cache nothing to do this cycle, so it drains.')); n++; }
+    return { state: state, events: r.events, result: { drained: n, left: state.d.sq.length } };
+  }
+  function setStoreQueueSize(state0, env, depth) {
+    var state = clone(state0), r = new Recorder(state);
+    if (state.d.sq.length) drainAll(state, r, env, 'Changing the depth first drains every queued store.');
+    state.d.sqSize = depth;
+    return { state: state, events: r.events, result: { depth: depth } };
+  }
+
   /* ---------- D-cache ---------- */
 
   /* request: { write, size: 1|2|4, address, data (low-packed store payload), mnemonic? } */
@@ -271,7 +330,15 @@
       source: [RTL.map + ': is_cacheable'], address: address, fields: f, region: c, set: c.cacheable ? f.index : null, write: write, size: size, data: write ? data : null,
       flow: 'core-d' });
 
-    if (!c.cacheable) return uncached(state, r, env, request, f, c, mn, result);
+    if (!c.cacheable) {
+      if (state.d.sq.length) {
+        r.push({ kind: 'queue-wait', cache: 'd', tone: 'miss', title: 'Uncached access waits for the store queue to empty',
+          text: 'An uncached access must not pass completed stores, so MEM holds it while the cache drains all ' + state.d.sq.length + ' queued store' + (state.d.sq.length === 1 ? '' : 's') + ' in order.',
+          source: [RTL.dcache + ': uncached accesses wait for queue_empty'], address: address, flow: null });
+        drainAll(state, r, env, null);
+      }
+      return uncached(state, r, env, request, f, c, mn, result);
+    }
 
     var set = state.d.sets[f.index];
     var compare = set.ways.map(function (w, i) { return { way: i, valid: w.valid, tag: w.tag, match: !!(w.valid && w.tag === f.tag) }; });
@@ -281,12 +348,98 @@
         (hitWay >= 0 ? 'Way ' + hitWay + ' matches. probe_accept captures the result with the instruction; MEM does not compare tags again.' : 'Neither valid way holds this tag. MEM holds the access while the controller handles the miss.'),
       source: [RTL.dcache + ': lookup (probe_hit), probe_registers'], set: f.index, compare: compare, address: address, fields: f });
 
+    var depth = sqDepth(state), ov = sqOverlaps(state, address, size);
+    if (depth > 0 && !write && ov.list.length) {
+      var y = state.d.sq[ov.list[ov.list.length - 1]];
+      if ((y.lanes & ov.lanes) === ov.lanes) {
+        var fv = extract(mergeStore(0, y.data, y.size, y.address & 3), size, f.byte);
+        state.tally.forwarded++;
+        result.value = fv; result.hit = null; result.forwarded = true;
+        r.push({ kind: 'queue-forward', cache: 'd', tone: 'hit', title: 'Load forwarded from the store queue: ' + hx(fv),
+          text: 'The youngest queued store that overlaps this load (' + y.mnemonic + ' ' + hx(y.address) + ') writes every byte it reads, so the load completes with that store’s data. The cache arrays and memory are not read, and the LRU bit does not change.',
+          source: [RTL.queue + ': covered, forward_word', RTL.dcache + ': forward_load'], address: address, value: fv, flow: 'd-core' });
+        return { state: state, events: r.events, result: result };
+      }
+      r.push({ kind: 'queue-wait', cache: 'd', tone: 'miss', title: 'Partial overlap: the load waits for queued stores to drain',
+        text: 'A queued store writes some, but not all, of the bytes this load reads. Neither the queue nor the cache can supply the whole value, so MEM holds the load until every overlapping store has drained into the cache.',
+        source: [RTL.queue + ': overlap without covered'], address: address, flow: null });
+      var guard = 0;
+      while (sqOverlaps(state, address, size).list.length && guard++ < 64) drainOne(state, r, env, null);
+      set = state.d.sets[f.index];
+      hitWay = set.ways[0].valid && set.ways[0].tag === f.tag ? 0 : set.ways[1].valid && set.ways[1].tag === f.tag ? 1 : -1;
+      if (hitWay >= 0) r.push({ kind: 'probe', cache: 'd', tone: 'hit', title: 'After the drains, way ' + hitWay + ' holds the line',
+        text: 'The drain refills changed the arrays, so the held load uses the repaired probe result.', source: [RTL.dcache + ': repaired_held_hit'], set: f.index, address: address, fields: f });
+    }
+    if (depth > 0 && write && (hitWay < 0 || ov.list.length)) {
+      if (c.kind !== 'ram' && env.kind !== 'bench') {
+        state.tally.fault++;
+        result.fault = 'access'; result.hit = false;
+        r.push({ kind: 'fault', cache: 'd', tone: 'fault', title: 'Access fault: the line is outside installed RAM',
+          text: 'This store would join the store queue, but its line lies beyond installed RAM, so it never does: the cache completes it with access_fault and the hart takes a precise store access fault.',
+          source: [RTL.dcache + ': absent_store'], address: address, flow: 'd-core' });
+        return { state: state, events: r.events, result: result };
+      }
+      if (state.d.sq.length >= depth) {
+        r.push({ kind: 'queue-wait', cache: 'd', tone: 'miss', title: 'Store queue full: the store waits',
+          text: 'All ' + depth + ' entries hold completed stores. MEM completes nothing this cycle, so the cache drains the oldest one; the new store joins when an entry frees.',
+          source: [RTL.dcache + ': queue_full'], address: address, flow: null });
+        drainOne(state, r, env, null);
+      }
+      state.d.sq.push({ address: address, word: u32(address & ~3), size: size, data: size === 4 ? data : u32(data & (size === 1 ? 0xff : 0xffff)), lanes: laneMask(size, address & 3) & 0xf, mnemonic: mn });
+      state.tally.queued++;
+      result.queued = true; result.hit = hitWay >= 0; result.queueIndex = state.d.sq.length - 1;
+      r.push({ kind: 'queue-push', cache: 'd', tone: 'dirty', title: 'Store completes into the store queue (entry ' + (state.d.sq.length - 1) + ')',
+        text: (hitWay < 0 ? 'The line is not resident. Instead of waiting for a refill, the store completes now by entering the queue; ' : 'The line is resident, but an older queued store writes the same bytes, so this store joins the queue behind it; ') +
+          'MEM retires it at once. The cache arrays and memory change later, when the queue drains in order. Queue: ' + sqText(state) + '.',
+        source: [RTL.dcache + ': queue_store, queue_push', RTL.queue + ': push'], set: f.index, address: address, flow: 'd-core' });
+      return { state: state, events: r.events, result: result };
+    }
     var way = hitWay;
     if (hitWay < 0) {
-      state.tally.dMiss++;
+      var filled = fillLine(state, r, env, f, write, data, size, mn, false);
+      if (filled.fault) { result.fault = 'access'; result.hit = false; return { state: state, events: r.events, result: result }; }
+      way = filled.way;
+      result.hit = false;
+    } else {
+      state.tally.dHit++;
+      result.hit = true;
+    }
+
+    // The held MEM access completes as a hit on the selected way (after a fill the
+    // probe register is forced to the victim way); a hit updates the LRU bit.
+    var line = set.ways[way], old = line.data[f.word];
+    var lruBefore = set.lru;
+    set.lru = way ? 0 : 1;
+    result.way = way; result.set = f.index;
+    if (write) {
+      line.data[f.word] = mergeStore(old, data, size, f.byte);
+      line.dirty = 1;
+      result.before = old; result.after = line.data[f.word];
+      r.push({ kind: 'complete', cache: 'd', tone: 'dirty', title: (result.hit ? 'Store hit' : 'Store completes') + ': way ' + way + ' word ' + f.word + ' is dirty',
+        text: (result.hit ? 'The store merges into the cached word: ' : 'The held store completes as a hit on the installed line: ') + hx(old) + ' → ' + hx(line.data[f.word]) + ' (' + sizeOf(size) + ' at byte ' + f.byte + '). ' +
+          'The dirty bit is set and memory is not written now: write-back happens on eviction or on a clean. ' + lruText(lruBefore, set.lru, way),
+        source: [RTL.dcache + ': store_hit, merge_store, replacement_bit'], set: f.index, way: way, words: [f.word], lru: { before: lruBefore, after: set.lru }, address: address, flow: 'd-core' });
+    } else {
+      var value = extract(old, size, f.byte);
+      result.value = value;
+      r.push({ kind: 'complete', cache: 'd', tone: 'hit', title: (result.hit ? 'Load hit' : 'Load completes') + ': ' + hx(value),
+        text: (result.hit ? 'The cached word ' : 'The held load completes as a hit on the installed line; word ') + hx(old) + (size < 4 ? ' is shifted by byte ' + f.byte + ' and zero-extended to ' + hx(value) + ' (the hart applies sign extension).' : ' returns to the hart.') + ' ' + lruText(lruBefore, set.lru, way),
+        source: [RTL.dcache + ': cpu_response, replacement_bit'], set: f.index, way: way, words: [f.word], lru: { before: lruBefore, after: set.lru }, value: value, address: address, flow: 'd-core' });
+    }
+    return { state: state, events: r.events, result: result };
+  }
+
+  /* Write back the LRU victim of set f.index if dirty, then refill the line of
+     f, merging a store (write/data/size at f.word/f.byte). drain marks the
+     queue head's write-allocate, whose refill failure belongs to an already
+     completed store and is reported, not faulted. Returns { way } or
+     { fault: true }. */
+  function fillLine(state, r, env, f, write, data, size, mn, drain) {
+    var set = state.d.sets[f.index], address = f.address;
+      if (!drain) state.tally.dMiss++;
       var victim = set.lru, v = set.ways[victim];
       var victimLine = dLineAddress(v.tag, f.index);
-      r.push({ kind: 'miss', cache: 'd', tone: 'miss', title: 'Miss: replace way ' + victim + ' (LRU bit = ' + victim + ')',
+      r.push({ kind: 'miss', cache: 'd', tone: 'miss', title: (drain ? 'Drain miss' : 'Miss') + ': replace way ' + victim + ' (LRU bit = ' + victim + ')',
         text: 'capture_miss saves the address' + (write ? ', store payload and size' : ' and size') + '. The set\'s replacement bit chooses way ' + victim +
           ' as the victim; the RTL does not prefer an invalid way. ' +
           (!v.valid ? 'Way ' + victim + ' is invalid, so nothing is lost.' : v.dirty ? 'Way ' + victim + ' holds dirty line ' + hx(victimLine) + ': it must be written back first.' : 'Way ' + victim + ' holds clean line ' + hx(victimLine) + ': it is overwritten without a write-back.'),
@@ -324,12 +477,16 @@
             text: rd.reason + ' failed_fill returns the controller to IDLE and clears way ' + victim + '\'s valid bit' + (h ? ' (its low words were already replaced)' : '') + '. cache_error then completes the held access with access_fault: the hart traps instead of retiring it. The LRU bit is unchanged.',
             source: [RTL.dcache + ': failed_fill, cache_error'], set: f.index, way: victim,
             beat: { channel: 'd', dir: 'read', address: fa, data: null, mask: 0xff, ok: false, purpose: 'fill-' + (h ? 'high' : 'low') }, flow: 'd-fabric' });
-          result.fault = 'access';
-          result.hit = false;
+          if (drain) {
+            r.push({ kind: 'fault', cache: 'd', tone: 'fault', title: 'Queued store lost: writeback_failed reports ' + hx(f.line),
+              text: 'The store completed when it entered the queue, so nothing can trap now. The cache pops it, pulses writeback_failed with the line address, and the core records the loss in MWBERR (interrupt 16).',
+              source: [RTL.dcache + ': line_lost (draining && failed_fill)'], set: f.index, way: victim, address: f.address });
+            return { fault: true, lost: true };
+          }
           r.push({ kind: 'fault', cache: 'd', tone: 'fault', title: 'Access fault: ' + mn + ' does not retire',
             text: 'No line is installed for ' + hx(f.line) + '. The trap handler sees a ' + (write ? 'store' : 'load') + ' access fault.',
-            source: [RTL.dif + ': access_fault'], set: f.index, way: victim, address: address });
-          return { state: state, events: r.events, result: result };
+            source: [RTL.dif + ': access_fault'], set: f.index, way: victim, address: f.address });
+          return { fault: true };
         }
         var merged = null;
         for (var k = 0; k < 2; k++) {
@@ -348,35 +505,7 @@
           source: [RTL.dcache + ': format_refill, metadata (selected_fill && beat_high)'], set: f.index, way: victim, words: h ? [2, 3] : [0, 1], merged: merged,
           beat: { channel: 'd', dir: 'read', address: fa, data: rd.data, mask: 0xff, ok: true, purpose: 'fill-' + (h ? 'high' : 'low') }, flow: 'fabric-d' });
       }
-      way = victim;
-      result.hit = false;
-    } else {
-      state.tally.dHit++;
-      result.hit = true;
-    }
-
-    // The held MEM access completes as a hit on the selected way (after a fill the
-    // probe register is forced to the victim way); a hit updates the LRU bit.
-    var line = set.ways[way], old = line.data[f.word];
-    var lruBefore = set.lru;
-    set.lru = way ? 0 : 1;
-    result.way = way; result.set = f.index;
-    if (write) {
-      line.data[f.word] = mergeStore(old, data, size, f.byte);
-      line.dirty = 1;
-      result.before = old; result.after = line.data[f.word];
-      r.push({ kind: 'complete', cache: 'd', tone: 'dirty', title: (result.hit ? 'Store hit' : 'Store completes') + ': way ' + way + ' word ' + f.word + ' is dirty',
-        text: (result.hit ? 'The store merges into the cached word: ' : 'The held store completes as a hit on the installed line: ') + hx(old) + ' → ' + hx(line.data[f.word]) + ' (' + sizeOf(size) + ' at byte ' + f.byte + '). ' +
-          'The dirty bit is set and memory is not written now: write-back happens on eviction or on a clean. ' + lruText(lruBefore, set.lru, way),
-        source: [RTL.dcache + ': store_hit, merge_store, replacement_bit'], set: f.index, way: way, words: [f.word], lru: { before: lruBefore, after: set.lru }, address: address, flow: 'd-core' });
-    } else {
-      var value = extract(old, size, f.byte);
-      result.value = value;
-      r.push({ kind: 'complete', cache: 'd', tone: 'hit', title: (result.hit ? 'Load hit' : 'Load completes') + ': ' + hx(value),
-        text: (result.hit ? 'The cached word ' : 'The held load completes as a hit on the installed line; word ') + hx(old) + (size < 4 ? ' is shifted by byte ' + f.byte + ' and zero-extended to ' + hx(value) + ' (the hart applies sign extension).' : ' returns to the hart.') + ' ' + lruText(lruBefore, set.lru, way),
-        source: [RTL.dcache + ': cpu_response, replacement_bit'], set: f.index, way: way, words: [f.word], lru: { before: lruBefore, after: set.lru }, value: value, address: address, flow: 'd-core' });
-    }
-    return { state: state, events: r.events, result: result };
+    return { way: victim };
   }
 
   function lruText(before, after, way) {
@@ -433,6 +562,7 @@
       text: (reason === 'halt' ? 'The hart holds halt; the D-cache runs the same scan as clean and then keeps flushed asserted. ' : 'The fence in MEM holds dcache.clean. ') +
         'DCACHE_FLUSH visits sets 0 to 7 and writes back each dirty way, way 0 first. Valid lines stay valid: Prism has no D-cache invalidate.',
       source: [RTL.dcache + ': controller DCACHE_FLUSH', RTL.datapath + ': fence FSM'], flow: null });
+    if (state.d.sq.length) drainAll(state, r, env, 'Maintenance first moves every queued store into the cache, so the clean covers every completed store.');
     for (var s = 0; s < 8; s++) {
       var set = state.d.sets[s];
       while (set.ways[0].dirty || set.ways[1].dirty) {
@@ -480,15 +610,16 @@
   }
 
   function reset(state0) {
-    var fresh = createState(), state = clone(state0);
-    var lost = 0;
+    var fresh = createState({ storeQueue: sqDepth(state0) }), state = clone(state0);
+    var lost = 0, lostStores = (state0.d.sq || []).length;
     state.d.sets.forEach(function (s) { s.ways.forEach(function (w) { if (w.valid && w.dirty) lost++; }); });
     // n_rst clears contents and metadata; memory outside the tile is untouched.
     state.d = fresh.d; state.i = fresh.i;
     var r = new Recorder(state);
     r.push({ kind: 'reset', tone: lost ? 'fault' : 'info', title: 'n_rst: both caches cleared',
       text: 'Asynchronous reset clears every valid, dirty and LRU bit and the data arrays in both caches and cancels requests. ' +
-        (lost ? lost + ' dirty line' + (lost === 1 ? ' was' : 's were') + ' discarded without a write-back: memory keeps its older values.' : 'No line was dirty, so no data was lost.'),
+        (lost ? lost + ' dirty line' + (lost === 1 ? ' was' : 's were') + ' discarded without a write-back: memory keeps its older values.' : 'No line was dirty, so no data was lost.') +
+        (lostStores ? ' ' + lostStores + ' queued store' + (lostStores === 1 ? ' was' : 's were') + ' discarded too.' : ''),
       source: [RTL.dcache + ': n_rst discards valid and dirty contents', RTL.icache + ': n_rst'], flow: null });
     return { state: state, events: r.events, result: { lost: lost } };
   }
@@ -608,7 +739,7 @@
   function runProgram(segments, listing, options) {
     options = options || {};
     var env = options.env || createEnv('soc', segments, options);
-    var state = options.state ? clone(options.state) : createState();
+    var state = options.state ? clone(options.state) : createState({ storeQueue: options.storeQueue });
     var regs = new Array(32).fill(0), unknown = {}, cpu = { mie: 1 };
     var lines = {};
     (listing || []).forEach(function (l) { if (!(hex8(l.address) in lines)) lines[hex8(l.address)] = l; });
@@ -665,6 +796,11 @@
         if (opc === 0x67 && unknown[(word >>> 15) & 31]) { stop = { reason: 'unknown', pc: pc, line: op.line, message: (op.line ? 'Line ' + op.line + ': ' : '') + 'the jump target is a device value this view does not model.' }; break; }
         if (opc === 0x63 && (unknown[(word >>> 15) & 31] || unknown[(word >>> 20) & 31])) { stop = { reason: 'unknown', pc: pc, line: op.line, message: (op.line ? 'Line ' + op.line + ': ' : '') + 'the branch compares a device value this view does not model.' }; break; }
       }
+      if (!x.memory && !x.fence && !x.halt && state.d.sq.length) {
+        // Model timing: the instruction gives MEM nothing for the cache, so one queued store drains.
+        var idle = drainStoreQueue(state, env, 1, 'This instruction gives MEM nothing for the cache, so the oldest queued store drains.');
+        state = idle.state; op.events = op.events.concat(idle.events);
+      }
       if (x.fence) {
         var mt = x.fence === 'fence.i' ? fenceI(state, env) : clean(state, env, 'fence');
         state = mt.state; op.events = op.events.concat(mt.events); op.fence = x.fence;
@@ -696,10 +832,11 @@
       if ((t.bdr || t.bdw) && !t.bdwt) pending.push({ dir: t.bdr ? 'read' : 'write', address: num(t.bda), state: t.dst, cycle: t.c });
       if (t.dst === 5) flushSeen = true;
       var enc = num(t.mem[2]);
+      if (t.sqpo) { ops.push({ kind: 'drain', cycle: t.c, beats: pending.splice(0) }); }
       if ((t.dre || t.dwe) && t.dhit && t.memfire) {
         var f3 = (enc >>> 12) & 7, write = !!t.dwe;
         ops.push({ kind: 'data', cycle: t.c, pc: num(t.mem[1]), word: enc, write: write, size: write ? STORE_SIZE[f3] : LOAD_SIZE[f3], signed: !write && f3 < 2,
-          address: num(t.dad), wdata: num(t.dwd), rdata: num(t.drd), way: t.phit === 2 ? 1 : t.phit === 1 ? 0 : null, beats: pending.splice(0) });
+          address: num(t.dad), wdata: num(t.dwd), rdata: num(t.drd), way: t.phit === 2 ? 1 : t.phit === 1 ? 0 : null, queued: !!t.sqpu, beats: pending.splice(0) });
         flushSeen = false; lastBoundary = i;
       } else if (t.mem[0] && (enc & 0x7f) === 0x0f && t.memfire) {
         ops.push({ kind: ((enc >>> 12) & 7) === 1 ? 'fence.i' : 'fence', cycle: t.c, pc: num(t.mem[1]), word: enc, beats: pending.splice(0) });
@@ -748,7 +885,13 @@
         notes.push({ cycle: r.cycle, text: 'The recording ended while a data access was still in progress (' + beatText(r.beats) + '); it is not replayed.' });
         return;
       }
-      if (r.kind === 'ifill') {
+      if (r.kind === 'drain') {
+        var dq = state.d.sq.length;
+        x = dq ? drainStoreQueue(state, env, 1, 'The recording shows the cache idle here, so it drains.') : { state: state, events: [], result: { drained: 0 } };
+        check(dq > 0, 'store-queue drain', dq ? 'The model also drains its oldest queued store.' : 'The RTL drained a store, but the model\'s queue is empty.');
+        var dbeats = beatsOf(x.events);
+        check(sameBeats(dbeats, r.beats), 'drain beats', 'RTL: ' + beatText(r.beats) + '. Model: ' + beatText(dbeats) + '.');
+      } else if (r.kind === 'ifill') {
         var before = state.i.lines[(r.address >>> 3) & 15];
         var already = before.valid && before.tag === (r.address >>> 7);
         x = instructionFetch(state, env, r.address);
@@ -764,7 +907,9 @@
         }
         var predicted = beatsOf(x.events);
         check(sameBeats(predicted, r.beats), 'fabric beats', 'RTL: ' + beatText(r.beats) + '. Model: ' + beatText(predicted) + '.');
-        if (x.result.cacheable) check(x.result.way === r.way, 'way', 'RTL completed in way ' + r.way + '; model used way ' + x.result.way + '.');
+        if (r.queued || x.result.queued) check(!!r.queued === !!x.result.queued, 'store queue', 'RTL ' + (r.queued ? 'queued' : 'did not queue') + ' the store; model ' + (x.result.queued ? 'queued' : 'did not queue') + ' it.');
+        else if (x.result.forwarded) check(true, 'store queue forward', 'The model forwarded from the queue.');
+        else if (x.result.cacheable) check(x.result.way === r.way, 'way', 'RTL completed in way ' + r.way + '; model used way ' + x.result.way + '.');
         if (!r.write) check(x.result.value === r.rdata, 'load data', 'RTL returned ' + hx(r.rdata) + '; model returned ' + (x.result.value === null ? 'nothing' : hx(x.result.value)) + '.');
       } else {
         op.pc = r.pc;
@@ -806,6 +951,7 @@
   return {
     RTL: RTL, GEOMETRY: GEOMETRY, FALLBACK_MAP: FALLBACK_MAP, TEACHING_DEVICES: TEACHING_DEVICES, SUBSET: SUBSET,
     hex8: hex8, hx: hx, bits: bits, splitD: splitD, splitI: splitI, dLineAddress: dLineAddress, iLineAddress: iLineAddress,
+    STORE_QUEUE_SIZE: STORE_QUEUE_SIZE, drainStoreQueue: drainStoreQueue, setStoreQueueSize: setStoreQueueSize,
     createState: createState, createEnv: createEnv, classify: classify, readWord: readWord, benchAlias: benchAlias,
     dataAccess: dataAccess, instructionFetch: instructionFetch, clean: clean, invalidateInstruction: invalidateInstruction, fenceI: fenceI, reset: reset,
     mergeStore: mergeStore, execute: execute, runProgram: runProgram,

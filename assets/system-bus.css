@@ -281,3 +281,17 @@
 .peripheral-control-reference .control-scope { margin: 1rem 0; }
 .peripheral-control-reference .table-scroll { max-height: 30rem; overflow: auto; }
 .register-links { display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
+
+/* Quick load/store bar and irq0 arbitration summary. */
+.sb-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px solid var(--rule); }
+.sb-quick select { max-width: min(30rem, 100%); }
+.sb-quick input { width: 9.5rem; font-family: var(--font-mono); }
+.sb-quick button { min-height: 1.9rem; padding: 0.15rem 0.6rem; font-size: 0.85rem; }
+.sb-quick .sb-form-error:empty { display: none; }
+.sb-arb { margin-top: 0.4rem; font-size: 0.88rem; }
+.sb-arb p { margin: 0.15rem 0; }
+@media (max-width: 700px) {
+  .sb-quick { gap: 0.35rem; }
+  .sb-quick label.sb-inline { display: flex; flex: 1 1 100%; flex-wrap: wrap; min-width: 0; }
+  .sb-quick select { flex: 1 1 100%; width: 100%; min-width: 0; }
+}

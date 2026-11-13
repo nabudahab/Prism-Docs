@@ -73,14 +73,15 @@
   var DEVX = 1046, DEVW = 226;
   function rowY(i) { return ROW0 + i * PITCH; }
   // Collector x and irq0 entry y for each external source (nested L-shapes).
-  var COLLECT = { gpio_a: [1312, 614], uart0: [1302, 584], spi0: [1292, 554], gpio_b: [1282, 524] };
+  var IRQY0 = 330, IRQH0 = 170;
+  var COLLECT = { uart0: [1312, IRQY0 + 140], gpio0: [1298, IRQY0 + 110] };
 
   function buildGraph(L) {
     var nodes = [], wires = [], lanes = [];
     var rows = {};
     L.devices.filter(function (d) { return d.name !== 'irq0'; }).forEach(function (d, i) { rows[d.name] = i; });
-    rows.none = 5;
-    var IRQY = rowY(6) - 10, IRQH = 150;
+    rows.none = 2;
+    var IRQY = IRQY0, IRQH = IRQH0;
     nodes.push({ id: 'core', x: 36, y: 84, w: 228, h: 108, cls: 'is-core', title: 'Base core', tag: 'example' });
     nodes.push({ id: 'caches', x: 36, y: 230, w: 228, h: 152, cls: 'is-cache', title: 'Local caches', tag: 'I$ · D$', subAt: 372, subLines: 1 });
     lanes.push({ id: 'lane_line', x: 48, y: 262, w: 204, h: 40, label: 'Line fill / write-back', sub: 'cacheable RAM window' });
@@ -96,9 +97,8 @@
       if (d.name === 'irq0') nodes.push({ id: 'dev_irq0', x: DEVX, y: IRQY, w: DEVW, h: IRQH, cls: 'is-device is-irqc', title: '[' + d.index + '] irq0', tag: '', dev: d });
       else nodes.push({ id: 'dev_' + d.name, x: DEVX, y: rowY(rows[d.name]), w: DEVW, h: ROWH, cls: 'is-device is-source', title: '[' + d.index + '] ' + d.name, tag: '', dev: d, source: d.name });
     });
-    nodes.push({ id: 'dev_none', x: DEVX, y: rowY(5), w: DEVW, h: ROWH, cls: 'is-none', title: 'No device → error', tag: '' });
+    nodes.push({ id: 'dev_none', x: DEVX, y: rowY(2), w: DEVW, h: ROWH, cls: 'is-none', title: 'No device → error', tag: '' });
     nodes.push({ id: 'sync_ext', x: 716, y: 700, w: 148, h: 58, cls: 'is-sync', title: 'external sync', tag: '' });
-    nodes.push({ id: 'sync_tim', x: 716, y: 770, w: 148, h: 58, cls: 'is-sync', title: 'timer sync', tag: '' });
 
     // Transport wires.
     wires.push({ id: 'w_core_cache', c: 'c-core', pts: [[150, 192], [150, 230]], aria: 'Load or store request from the core’s MEM stage to the D-cache' });
@@ -113,7 +113,7 @@
       var y = d.name === 'irq0' ? IRQY + 30 : rowY(rows[d.name]) + ROWH / 2;
       wires.push({ id: 'w_dev_' + d.name, c: 'c-mmio', pts: [[1016, y], [DEVX, y]], aria: 'devices[' + d.index + '] port to ' + d.name });
     });
-    wires.push({ id: 'w_dev_none', c: 'c-error', pts: [[1016, rowY(5) + ROWH / 2], [DEVX, rowY(5) + ROWH / 2]], aria: 'Unmatched beats: the decoder answers with an error' });
+    wires.push({ id: 'w_dev_none', c: 'c-error', pts: [[1016, rowY(2) + ROWH / 2], [DEVX, rowY(2) + ROWH / 2]], aria: 'Unmatched beats: the decoder answers with an error' });
     // Interrupt wires: separate from the transport.
     L.sources.forEach(function (d) {
       var c = COLLECT[d.name], y = rowY(rows[d.name]) + ROWH / 2;
@@ -123,9 +123,6 @@
     var irqMid = DEVX + DEVW / 2;
     wires.push({ id: 'w_ext_irq', c: 'c-irq', irq: true, pts: [[irqMid, IRQY + IRQH], [irqMid, 729], [864, 729]], aria: 'peripheral_external_irq from irq0 to the CPU-side synchronizer', label: 'peripheral_external_irq', lx: 968, ly: 719, anchor: 'middle' });
     wires.push({ id: 'w_ext_core', c: 'c-irq', irq: true, pts: [[716, 729], [264, 729]], aria: 'core external_irq into the tile', label: 'core external_irq', lx: 490, ly: 721 });
-    var tRow = rowY(rows.timer0) + ROWH / 2;
-    wires.push({ id: 'w_tim_irq', c: 'c-irq', irq: true, pts: [[DEVX + DEVW, tRow], [1326, tRow], [1326, 799], [864, 799]], aria: 'peripheral_timer_irq from timer0, bypassing irq0', label: 'peripheral_timer_irq', lx: 968, ly: 789, anchor: 'middle' });
-    wires.push({ id: 'w_tim_core', c: 'c-irq', irq: true, pts: [[716, 799], [264, 799]], aria: 'core timer_irq into the tile', label: 'core timer_irq', lx: 490, ly: 791 });
     return { nodes: nodes, wires: wires, lanes: lanes, irqY: IRQY, irqH: IRQH };
   }
 
@@ -135,18 +132,18 @@
     var I = {
       core: { kind: 'Example core', title: 'Base core', text: [
         'This page uses Base as the example processor. Loads and stores compute their address in EX and access memory in MEM; an uncached access holds MEM until its response arrives, because every layer below is blocking.',
-        'Base samples three machine interrupt levels into `mip` and takes a trap only at an instruction boundary, after older MEM/WB work drains. Any core tile meets the same bus through `cache_fabric_if`; the composition below the tile does not depend on the core.'],
-        sources: ['source/core_tiles/base/rtl/pipeline/datapath.sv', 'source/core_tiles/base/rtl/pipeline/units/csr_file.sv'], links: [['#/architecture/core/base', 'Base datapath and assembly']] },
+        'Base samples its machine interrupt levels into `mip` on rising clk edges and takes a trap only at an instruction boundary, after older MEM/WB work drains. A load or store takes effect when it completes in MEM; the instruction retires from WB later. Any core tile meets the same bus through `cache_fabric_if`; the composition below the tile does not depend on the core.'],
+        sources: ['source/core_tiles/base/rtl/pipeline/datapath.sv', 'source/core_tiles/base/rtl/pipeline/units/csr_file.sv'], links: [['#/architecture/datapath/base', 'Base datapath and assembly']] },
       caches: { kind: 'Tile component', title: 'Local caches', text: [
-        'Only the RAM window ' + F.hex32(ram.base) + '–' + F.hex32(ram.last) + ' is cacheable (`memory_map_pkg::is_cacheable`). RAM accesses go through 16-byte lines: a miss reads two 8-byte beats with mask 0xFF, after writing back a dirty victim.',
+        'Only the RAM window ' + F.hex32(ram.base) + '–' + F.hex32(ram.last) + ' is cacheable (`memory_map_pkg::is_cacheable`). RAM accesses go through 16-byte lines: a miss reads two 8-byte beats with mask 0xFF, after writing back a dirty victim. A store that misses completes into a four-entry store queue instead and is written into its line later.',
         'ROM, peripheral and other non-RAM addresses bypass line allocation. Holes in the RAM reservation stay cacheable: they attempt a line fill, which errors and faults. The D-cache registers one beat with the access’s byte mask, issues it once and waits for the response, so a device side effect cannot repeat.',
         'The [Caches tab](#/architecture/caches) shows hits, misses and replacement.'],
-        sources: ['source/core_tiles/base/rtl/caches/dcache.sv', 'source/soc/packages/memory_map_pkg.vh'], links: [['#/architecture/caches', 'Caches tab']] },
-      lane_line: { kind: 'D-cache path', title: 'Line fill and write-back', text: ['Cacheable RAM traffic. Base’s D-cache has 8 sets × 2 ways × 16-byte lines, write-back and write-allocate: stores also fill the line first, and RAM sees a store only when the dirty line is written back.'], sources: ['source/core_tiles/base/rtl/caches/dcache.sv'], links: [['#/architecture/caches', 'Caches tab']] },
-      lane_io: { kind: 'D-cache path', title: 'Uncached beat', text: ['For a word at offset +4 of an 8-byte beat the mask is 0xF0 and the data sits in the upper half; at +0 it is 0x0F. The response is shifted back down by the same byte offset.'], sources: ['source/core_tiles/base/rtl/caches/dcache.sv'] },
+        sources: ['source/caches/probed_data/rtl/dcache.sv', 'source/caches/probed_data/rtl/store_queue.sv', 'source/soc/packages/memory_map_pkg.vh'], links: [['#/architecture/caches', 'Caches tab']] },
+      lane_line: { kind: 'D-cache path', title: 'Line fill and write-back', text: ['Cacheable RAM traffic. The probed_data D-cache has 8 sets × 2 ways × 16-byte lines, write-back and write-allocate. A store miss completes into the store queue; when the cache is idle it drains the oldest queued store, refilling its line first if needed. RAM sees a store only when the dirty line is written back.'], sources: ['source/caches/probed_data/rtl/dcache.sv', 'source/caches/probed_data/rtl/store_queue.sv'], links: [['#/architecture/caches', 'Caches tab']] },
+      lane_io: { kind: 'D-cache path', title: 'Uncached beat', text: ['Waits until the store queue is empty. For a word at offset +4 of an 8-byte beat the mask is 0xF0 and the data sits in the upper half; at +0 it is 0x0F. The response is shifted back down by the same byte offset.'], sources: ['source/caches/probed_data/rtl/dcache.sv'] },
       csr: { kind: 'Core CSRs', title: 'Trap logic and CSRs', text: [
-        'csr_file samples `external_irq` into mip.MEIP (bit 11) and `timer_irq` into mip.MTIP (bit 7) on every falling clk edge, whatever the enables are. Software cannot clear them through mip: only the source can.',
-        'An interrupt is eligible when mstatus.MIE = 1 and (mie & mip) has a set bit. Priority: write-back error, external, software, timer. Entry sets mepc to the oldest unexecuted instruction, mcause to 0x8000_000B (external) or 0x8000_0007 (timer), mtval to 0, MPIE ← MIE, MIE ← 0, and jumps to mtvec (direct mode). mret sets MIE ← MPIE and MPIE ← 1.',
+        'csr_file samples `external_irq` into mip.MEIP (bit 11) on every rising clk edge, whatever the enables are. Software cannot clear it through mip: only the source can. This configuration has no timer, so mip.MTIP stays 0.',
+        'An interrupt is eligible when mstatus.MIE = 1 and (mie & mip) has a set bit. Base CPU cause priority: write-back error (16), external (11), software (3), timer (7). That ranks interrupt lines inside the core; irq0 separately ranks the devices behind the external line. An accepted request updates mepc, mcause (0x8000_000B for external), mtval, MPIE ← MIE and MIE ← 0 on the next rising edge, together with the jump to mtvec. mret retires from WB and sets MIE ← MPIE and MPIE ← 1 on its redirect edge.',
         'Neither trap entry nor mret talks to the interrupt controller. Claiming and completing are ordinary MMIO accesses by the handler.'],
         sources: ['source/core_tiles/base/rtl/pipeline/units/csr_file.sv', 'source/core_tiles/base/rtl/pipeline/datapath.sv', 'source/contracts/packages/trap_causes_pkg.vh'] },
       w_core_cache: { kind: 'Inside the tile', title: 'MEM-stage data request', text: ['The core’s data request to its D-cache. This is internal to the tile, not a Prism contract.'] },
@@ -161,7 +158,7 @@
         'Combinational router. address_decode selects RAM only inside its ' + F.size(ram.bytes) + ' installed and ROM only for reads inside its ' + F.size(rom.bytes) + ' installed: capacity is checked before the base is subtracted, so holes in a reservation do not alias storage.',
         'Every address in the peripheral aperture ' + F.hex32(L.mmio.base) + '–' + F.hex32(L.mmio.last) + ' raises mmio.valid (aligned data accesses only), including addresses where no device exists. While mmio.ready is low it answers BUSY.',
         'Misaligned beats, both enables, ROM writes, fetches from MMIO and unmapped addresses complete with ERROR at once.'],
-        sources: ['source/soc/buses/rtl/system_bus.sv', 'source/soc/memory/rtl/address_decode.sv'] },
+        sources: ['source/soc/buses/rtl/system_bus.sv', 'source/soc/buses/rtl/address_decode.sv'] },
       w_ram: { kind: 'Target port', title: 'physical_ramif', mono: true, text: ['RAM sees the address minus ' + F.hex32(ram.base) + ', and only when the address lies in installed RAM.'], sources: ['source/soc/buses/rtl/system_bus.sv'] },
       ram: { kind: 'Storage', title: 'RAM', text: [
         F.size(ram.bytes) + ' installed at ' + F.hex32(ram.base) + ' inside a ' + F.size(ram.reserved) + ' reservation. A one-command synchronous RAM: it answers ACCESS after RAM_LAT cycles (default 1).',
@@ -174,7 +171,7 @@
         sources: ['source/soc/memory/rtl/boot_rom.sv'] },
       w_mmio_cpu: { kind: 'Interface contract', title: 'mmio_if (cpu_mmio)', mono: true, text: ['The CPU-clock side of the peripheral port: one 64-bit beat, held from valid to completion. Completion is the clk edge with valid && ready; error alone does not complete it.'], sources: ['source/soc/interfaces/mmio_if.vh'] },
       cdc: { kind: 'Clock-domain bridge', title: 'mmio_cdc', mono: true, text: [
-        'Present because this composition uses ASYNC_PERIPHERALS=1, as Prism’s FPGA wrappers do. One request at a time crosses by toggle handshake: the CPU side captures the request and flips request_toggle; two peripheral_clk flops synchronize it; the peripheral side raises valid until the device is ready, captures {error, read_data} and flips acknowledge_toggle; two clk flops bring it back; REPLY raises cpu.ready for one edge.',
+        'Present because the system manifest gives the SoC separate cpu and peripheral clocks, so the builder sets ASYNC_PERIPHERALS=1. One request at a time crosses by toggle handshake: the CPU side captures the request and flips request_toggle; two peripheral_clk flops synchronize it; the peripheral side raises valid until the device is ready, captures {error, read_data} and flips acknowledge_toggle; two clk flops bring it back; REPLY raises cpu.ready for one edge.',
         'Only the toggles are synchronized. The payload bundles are stable while their toggle crosses. How long a crossing takes depends on both clocks, so this page shows the order of edges, not a cycle count.',
         'The bridge carries no interrupt state. Interrupts have their own wires and synchronizers.'],
         sources: ['source/soc/buses/rtl/mmio_cdc.sv', 'source/soc/rtl/system.sv'] },
@@ -189,12 +186,9 @@
         'All of these reach mmio_decode_bus, which completes them with an error. The core reports a load or store access fault.'],
         sources: ['source/soc/buses/rtl/mmio_decode_bus.sv'], links: [['#/reference/address-map', 'Reserved regions']] },
       sync_ext: { kind: 'Synchronizer', title: 'external_sync[1:0]', mono: true, text: ['Two clk flops (ASYNC_REG) in system.sv carry peripheral_external_irq into the CPU domain. core external_irq = external_irq pin | external_sync[1]. It exists only with ASYNC_PERIPHERALS=1; otherwise the level connects directly.'], sources: ['source/soc/rtl/system.sv'] },
-      sync_tim: { kind: 'Synchronizer', title: 'timer_sync[1:0]', mono: true, text: ['A separate pair of clk flops for peripheral_timer_irq. The timer never passes through irq0 or its synchronizer.'], sources: ['source/soc/rtl/system.sv'] },
-      w_ext_irq: { kind: 'Interrupt level', title: 'peripheral_external_irq', mono: true, text: ['irq0’s output: 1 while any source is ACTIVE (pending, enabled and not in service). It is a retained level in the peripheral clock domain.'], sources: ['source/soc/peripherals/rtl/irq_controller.sv', 'source/soc/rtl/system.sv'] },
+      w_ext_irq: { kind: 'Interrupt level', title: 'peripheral_external_irq', mono: true, text: ['irq0’s output: 1 while any source is ACTIVE (pending, enabled and not in service). It is a retained level in the peripheral clock domain.'], sources: ['source/soc/peripherals/interrupt_controller/rtl/irq_controller.sv', 'source/soc/rtl/system.sv'] },
       w_ext_core: { kind: 'Interrupt level', title: 'core external_irq', mono: true, text: ['The synchronized level into the tile; Base maps it to mip.MEIP (bit 11).'], sources: ['source/core_tiles/base/rtl/pipeline/datapath.sv'] },
-      w_tim_irq: { kind: 'Interrupt level', title: 'peripheral_timer_irq', mono: true, text: ['timer0’s comparator level, MTIME ≥ MTIMECMP (unsigned). It bypasses the IRQ controller entirely.'], sources: ['source/soc/peripherals/rtl/timer.sv'] },
-      w_trap: { kind: 'Inside the tile', title: 'Trap redirect', text: ['On trap entry Base squashes younger work and fetches from mtvec (direct mode: every trap goes to one handler address). mret returns to mepc. Neither event sends anything to the bus or the interrupt controller.'], sources: ['source/core_tiles/base/rtl/pipeline/datapath.sv'] },
-      w_tim_core: { kind: 'Interrupt level', title: 'core timer_irq', mono: true, text: ['The synchronized timer level into the tile; Base maps it to mip.MTIP (bit 7).'], sources: ['source/core_tiles/base/rtl/pipeline/datapath.sv'] }
+      w_trap: { kind: 'Inside the tile', title: 'Trap redirect', text: ['On trap entry Base squashes younger work and fetches from mtvec (direct mode: every trap goes to one handler address), on the same rising edge that records mepc and mcause. mret redirects to mepc when it retires from WB. Neither event sends anything to the bus or the interrupt controller.'], sources: ['source/core_tiles/base/rtl/pipeline/datapath.sv'] }
     };
     if (I[id]) return I[id];
     var dm = /^(?:dev_|w_dev_|w_irq_)(.+)$/.exec(id);
@@ -214,7 +208,7 @@
       timer: ['ready is always 1. MTIME counts every peripheral_clk edge. timer_irq is the level MTIME ≥ MTIMECMP; after reset both are 0, so it is high until software raises MTIMECMP. A 32-bit access to +4 or +0xC uses the same beat address with mask 0xF0.',
         'It drives peripheral_timer_irq directly; it is not an irq0 source.'],
       irq: ['ready is always 1. Sources are level-sensitive. PENDING = installed source levels (PRESENT = ' + F.bits(L.present, 4) + ' here); ACTIVE = PENDING & ENABLE & ~in-service; irq = any ACTIVE bit.',
-        'Reading CURRENT_IRQ returns the highest-priority ACTIVE source as ID = bit + 1 (0 = none; priority 0 still interrupts; ties go to the lower bit) and marks it in service. Writing that ID back completes it: only the in-service bit clears. Clear the device first, or its held level is claimed again.',
+        'Reading CURRENT_IRQ returns the highest-priority ACTIVE source as ID = bit + 1 (0 = none; priority 0 still interrupts; ties go to the lower bit) and marks it in service. Every PRIORITY_n resets to 1, so here gpio0 (source 0) wins a tie with uart0 (source 2) until software writes PRIORITY_2 higher. Writing that ID back completes it: only the in-service bit clears. Clear the device first, or its held level is claimed again.',
         'Errors (no effect): unmapped offsets, writes to PENDING, ACTIVE or PRESENT, partial CURRENT_IRQ accesses, and completing an ID that is not in service.'],
       gpio: ['ready is always 1. Inputs pass a two-flop synchronizer; IRQ_RISE/IRQ_FALL select which edges set IRQ_PENDING, which is recorded even when masked and cleared by writing one. irq = any (IRQ_PENDING & IRQ_ENABLE) bit.',
         'OUTPUT, SET, CLEAR and TOGGLE drive gpio_out only. They never reach the input or the edge detector, so writing outputs cannot raise an interrupt.'],
@@ -228,7 +222,31 @@
     else if (d.irq === 'timer') facts.push(['Interrupt', 'peripheral_timer_irq (not through irq0)']);
     if (d.pins) facts.push(['Pins', d.pins]);
     return { kind: 'Peripheral', title: d.name + ' (' + d.comp.top + ')', mono: true, text: [head].concat(T[d.component]), facts: facts,
-      sources: [d.comp.rtl, 'source/soc/peripherals/' + d.component + '.toml'], links: [['#/reference/address-map/' + encodeURIComponent(d.region.id), 'Registers in the address map']] };
+      sources: [d.comp.rtl, d.comp.manifest], links: [['#/reference/address-map/' + encodeURIComponent(d.region.id), 'Registers in the address map']] };
+  }
+
+  // Destination presets shared by the quick bar and the form: [label, base, offset, op, value].
+  function presets(L) {
+    var g = L.byName.gpio0, u = L.byName.uart0, q = L.byName.irq0;
+    return [
+      { group: 'RAM (cacheable, through the D-cache)', items: [
+        ['RAM word at +0x100', L.ram.base, 0x100, 'sw', 0x12345678],
+        ['RAM word at +0x104 (same line)', L.ram.base, 0x104, 'lw', 0],
+        ['RAM past the installed ' + F.size(L.ram.bytes) + ' (hole)', (L.ram.base + L.ram.bytes) >>> 0, 0, 'lw', 0]] },
+      { group: 'Boot ROM (read-only, uncached)', items: [
+        ['Boot ROM word at +0', L.rom.base, 0, 'lw', 0],
+        ['Boot ROM word at +4 (store: error)', L.rom.base, 4, 'sw', 1]] },
+      { group: 'MMIO (uncached, through mmio_cdc)', items: [
+        ['gpio0 OUTPUT (+0x4)', g.base, 4, 'sw', 0x5],
+        ['gpio0 INPUT (+0x0)', g.base, 0, 'lw', 0],
+        ['gpio0 IRQ_PENDING (+0x1C, write one to clear)', g.base, 0x1C, 'sw', 0x1],
+        ['uart0 RX (+0x4, read clears RX_VALID)', u.base, 4, 'lw', 0],
+        ['uart0 STATUS (+0x8)', u.base, 8, 'lw', 0],
+        ['irq0 PENDING (+0x0)', q.base, 0, 'lw', 0],
+        ['irq0 CURRENT_IRQ (+0x18, read claims)', q.base, 0x18, 'lw', 0],
+        ['irq0 PRIORITY_2 for uart0 (+0x108)', q.base, 0x108, 'sw', 2],
+        ['spi reservation: not installed (error)', regionBase(L, 'spi'), 0, 'lw', 0]] }
+    ];
   }
 
   // Grouped address choices for the load/store form.
@@ -313,7 +331,7 @@
     var usePreset = true;
     var committed = soc.preset();
     var rxNext = 0x41;
-    var story = null, view = [], idx = 0, playing = false, timer = null, raf = null, speed = 1, detail = 'summary', selected = 'dev_gpio_a';
+    var story = null, view = [], idx = 0, playing = false, timer = null, raf = null, speed = 0.7, detail = 'summary', selected = 'dev_gpio0';
     var disposed = false;
     var parts = {}, wires = {}, dyn = {}, packets = null;
 
@@ -331,10 +349,11 @@
     var bNext = h('button', { type: 'button', class: 'sb-icon', 'aria-label': 'Next step', title: 'Next step', onclick: function () { pause(); go(idx + 1); } }, icon('next'));
     var bEnd = h('button', { type: 'button', class: 'sb-icon', 'aria-label': 'Last step', title: 'Last step', onclick: function () { pause(); go(view.length - 1); } }, icon('last'));
     var speedSel = h('select', { id: uid + '-speed', onchange: function () { speed = parseFloat(speedSel.value); if (playing) { pause(); play(); } } },
-      [['0.5', '0.5×'], ['1', '1×'], ['2', '2×'], ['4', '4×']].map(function (o) { return h('option', { value: o[0], text: o[1] }); }));
-    speedSel.value = '1';
+      // Medium matches the Base datapath's Medium pace; Slow leaves time to read each hop.
+      [['0.4', 'Slow'], ['0.7', 'Medium'], ['1.4', 'Fast']].map(function (o) { return h('option', { value: o[0], text: o[1] }); }));
+    speedSel.value = '0.7';
     var detailSel = h('input', { type: 'checkbox', id: uid + '-edges', onchange: function () { setDetail(detailSel.checked ? 'full' : 'summary'); } });
-    var autoHandler = h('input', { type: 'checkbox', id: uid + '-handler', checked: true });
+    var autoHandler = h('input', { type: 'checkbox', id: uid + '-handler' });
     var earlyComplete = h('input', { type: 'checkbox', id: uid + '-early' });
     var presetBtn = h('button', { type: 'button', class: 'sb-preset-btn', onclick: function () { usePreset = !usePreset; resetAll(); } });
     var presetNote = h('p', { class: 'sb-preset' });
@@ -358,7 +377,7 @@
       h('summary', { text: 'Options' }),
       h('div', { class: 'sb-bar-opts' },
         h('label', { class: 'sb-inline', for: uid + '-speed' }, 'Speed', speedSel),
-        h('label', { class: 'sb-check sb-small', for: uid + '-handler' }, autoHandler, 'Run the handler'),
+        h('label', { class: 'sb-check sb-small', for: uid + '-handler' }, autoHandler, 'Run the whole handler automatically'),
         h('label', { class: 'sb-check sb-small', for: uid + '-early' }, earlyComplete, 'Complete before clearing the device'),
         h('label', { class: 'sb-check sb-small', for: uid + '-edges' }, detailSel, 'Every clock edge')));
     var bar = h('div', { class: 'sb-bar' },
@@ -368,7 +387,33 @@
       optsBox);
     var stepTitle = h('p', { class: 'sb-step-title', 'aria-live': 'polite' });
     var handoffBox = h('div', { class: 'sb-handoff' });
-    var caption = h('div', { class: 'sb-caption-bar' }, bar, stepTitle, h('div', { class: 'sb-bar-foot' }, presetNote, handlerBar), handoffBox);
+    var PRESETS = presets(L);
+    var quickDest = h('select', { id: uid + '-dest', 'aria-label': 'Destination' }, PRESETS.map(function (g, gi) {
+      return h('optgroup', { label: g.group }, g.items.map(function (it, ii) { return h('option', { value: gi + ':' + ii, text: it[0] + ' · ' + F.hex32((it[1] + it[2]) >>> 0) }); }));
+    }));
+    var quickVal = h('input', { id: uid + '-qval', type: 'text', size: '12', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Store data (t1)' });
+    function quickItem() { var p2 = quickDest.value.split(':'); return PRESETS[+p2[0]].items[+p2[1]]; }
+    function quickSync() { var it = quickItem(); quickVal.value = F.hex32(it[4] >>> 0); }
+    function quickRun(op) {
+      var it = quickItem(), val = parseNumber(quickVal.value);
+      if (op === 'sw' && (isNaN(val) || val < -0x80000000 || val > 0xFFFFFFFF)) { quickErr.textContent = 'Store data must be a 32-bit value.'; return; }
+      quickErr.textContent = '';
+      var a = { type: 'access', op: op, base: it[1] >>> 0, offset: it[2] > 2047 ? 0 : it[2], value: op === 'sw' ? (val >>> 0) : 0 };
+      if (it[2] > 2047) a.base = (it[1] + it[2]) >>> 0;
+      start([a], soc.instrText(a) + ' → ' + it[0], false);
+    }
+    quickDest.addEventListener('change', quickSync);
+    var quickErr = h('span', { class: 'sb-form-error', role: 'alert' });
+    var quickBar = h('div', { class: 'sb-quick', role: 'group', 'aria-label': 'Load or store' },
+      h('label', { class: 'sb-inline', for: uid + '-dest' }, 'Load / store at', quickDest),
+      h('label', { class: 'sb-inline', for: uid + '-qval' }, 'data', quickVal),
+      h('button', { type: 'button', class: 'sb-primary', onclick: function () { quickRun('lw'); } }, 'Load (lw)'),
+      h('button', { type: 'button', class: 'sb-primary', onclick: function () { quickRun('sw'); } }, 'Store (sw)'),
+      h('button', { type: 'button', title: 'Let the D-cache use an idle cycle to drain its oldest queued store', onclick: function () { start([{ type: 'drain' }], 'The D-cache drains one queued store', false); } }, 'Drain one queued store'),
+      quickErr);
+    quickSync();
+    var arbBox = h('div', { class: 'sb-arb', 'aria-live': 'polite' });
+    var caption = h('div', { class: 'sb-caption-bar' }, bar, quickBar, stepTitle, arbBox, h('div', { class: 'sb-bar-foot' }, presetNote, handlerBar), handoffBox);
 
     /* ----- diagram ----- */
     var canvas = h('div', { class: 'sb-canvas', tabindex: '-1' });
@@ -379,7 +424,7 @@
       legendItem('key-irq', 'interrupt level (separate wires)'), legendItem('key-irq-hi', 'level is 1'), legendItem('key-error', 'error path'),
       legendItem('key-step', 'active in this hop'));
     var figure = h('figure', { class: 'sb-figure' }, caption, canvas,
-      h('figcaption', null, legend, h('p', { class: 'sb-figcap', text: 'Click a peripheral marked “IRQ ▸” to raise its interrupt; click any other block or wire for its RTL contract. Left of the dashed line runs on clk, right of it on peripheral_clk (ASYNC_PERIPHERALS=1). Hops are generated from the RTL rules, not recorded from a simulation; no cycle counts are implied across the two clocks.' })));
+      h('figcaption', null, legend, h('p', { class: 'sb-figcap', text: 'Click gpio0 or uart0 (marked “IRQ ▸”) to raise its interrupt. A second click on the other source adds to the first: both stay pending until the handler clears each device. Click any other block or wire for its RTL contract. Left of the dashed line runs on clk, right of it on peripheral_clk (ASYNC_PERIPHERALS=1). Hops are generated from the RTL rules, not recorded from a simulation; no cycle counts are implied across the two clocks.' })));
 
     /* ----- try it ----- */
     var tabs = [['access', 'Load / store'], ['inputs', 'Peripheral inputs and time'], ['core', 'Core and handler']];
@@ -406,7 +451,7 @@
 
     // Load / store form.
     var opSel = h('select', { id: uid + '-op', name: 'op' }, h('option', { value: 'lw', text: 'lw (load word)' }), h('option', { value: 'sw', text: 'sw (store word)' }));
-    var baseIn = h('input', { id: uid + '-base', name: 'base', type: 'text', spellcheck: 'false', autocomplete: 'off', value: F.hex32(L.byName.gpio_a.base) });
+    var baseIn = h('input', { id: uid + '-base', name: 'base', type: 'text', spellcheck: 'false', autocomplete: 'off', value: F.hex32(L.byName.gpio0.base) });
     var offIn = h('input', { id: uid + '-off', name: 'offset', type: 'text', inputmode: 'numeric', spellcheck: 'false', autocomplete: 'off', value: '4', 'aria-describedby': uid + '-off-help' });
     var valIn = h('input', { id: uid + '-val', name: 'value', type: 'text', spellcheck: 'false', autocomplete: 'off', value: '0x0000_0005' });
     var pick = h('select', { id: uid + '-pick', name: 'target' }, h('option', { value: '', text: 'Choose a register or region…' }),
@@ -454,7 +499,7 @@
     // Peripheral inputs and time.
     var pinRows = {};
     function pinRow(bank) {
-      var dev = L.byName['gpio_' + bank];
+      var dev = L.devices.filter(function (d) { return d.bank === bank; })[0];
       var row = h('div', { class: 'sb-pins', role: 'group', 'aria-label': dev.name + ' input pins' });
       for (var p = 7; p >= 0; p--) (function (pin) {
         row.appendChild(h('button', { type: 'button', class: 'sb-pin', 'aria-pressed': 'false', 'aria-label': dev.name + ' pin ' + pin, 'data-pin': pin,
@@ -470,7 +515,7 @@
     var inputError = h('p', { class: 'sb-form-error', role: 'alert' });
     tabPanels.inputs.append(
       h('p', { class: 'sb-dim', text: 'Pins and serial lines are outside the bus. Their effects reach the core only through interrupt levels, or when software reads the device.' }),
-      h('div', { class: 'sb-input-grid' }, pinRow('a'), pinRow('b'),
+      h('div', { class: 'sb-input-grid' }, pinRow('a'),
         h('div', { class: 'sb-input-block' }, h('p', { class: 'sb-mini-head', text: 'uart0 uart_rx' }),
           h('div', { class: 'sb-inline-row' }, h('label', { for: uid + '-rx', text: 'Byte' }), rxIn,
             h('label', { class: 'sb-check' }, rxFe, ' stop bit low (framing error)'),
@@ -480,14 +525,11 @@
               inputError.textContent = '';
               start([{ type: 'uart-rx', byte: b, frameError: rxFe.checked }], 'uart_rx receives ' + F.hex8(b), false);
             } }))),
-        h('div', { class: 'sb-input-block' }, h('p', { class: 'sb-mini-head', text: 'spi0 spi_miso' }),
-          h('div', { class: 'sb-inline-row' }, h('label', { for: uid + '-miso', text: 'The attached device answers' }), misoIn,
-            h('span', { class: 'sb-dim', text: 'during the next frame (stand-in for a real device)' }))),
         h('div', { class: 'sb-input-block' }, h('p', { class: 'sb-mini-head', text: 'Peripheral time' }),
           h('div', { class: 'sb-inline-row' },
             h('button', { type: 'button', text: '+100 clocks', onclick: function () { start([{ type: 'time', cycles: 100 }], '100 peripheral clocks pass', false); } }),
             h('button', { type: 'button', text: '+10 000 clocks', onclick: function () { start([{ type: 'time', cycles: 10000 }], '10 000 peripheral clocks pass', false); } }),
-            h('button', { type: 'button', text: 'Run to the next device event', onclick: function () { start([{ type: 'time', until: 'event' }], 'Wait for the next device event', false); } })))),
+            h('button', { type: 'button', text: 'Run to the end of a UART frame', onclick: function () { start([{ type: 'time', until: 'event' }], 'Wait for the next device event', false); } })))),
       inputError);
     misoIn.addEventListener('change', function () {
       var v = parseNumber(misoIn.value);
@@ -511,7 +553,7 @@
     var resetBtn = h('button', { type: 'button', class: 'sb-reset', text: 'Reset the whole system', onclick: function () { resetAll(); } });
     var coreState = h('p', { class: 'sb-core-state', 'aria-live': 'polite' });
     tabPanels.core.append(
-      h('div', { class: 'sb-switches' }, csrToggle('mstatus.MIE', 'mstatus.MIE', 'global machine interrupt enable'), csrToggle('mie.MEIE', 'mie.MEIE', 'external (irq0) enable'), csrToggle('mie.MTIE', 'mie.MTIE', 'timer enable')),
+      h('div', { class: 'sb-switches' }, csrToggle('mstatus.MIE', 'mstatus.MIE', 'global machine interrupt enable'), csrToggle('mie.MEIE', 'mie.MEIE', 'external (irq0) enable')),
       coreState,
       h('p', { class: 'sb-mini-head', text: 'Handler steps (ordinary instructions)' }),
       h('div', { class: 'sb-inline-row' }, claimBtn, completeBtn, mretBtn),
@@ -534,7 +576,7 @@
     var routing = routingTable();
 
     var announcer = h('p', { class: 'visually-hidden', 'aria-live': 'polite' });
-    var more = h('details', { class: 'sb-more' }, h('summary', null, 'More: run any load or store, peripheral inputs, CSR switches, live state and the address routing table'),
+    var more = h('details', { class: 'sb-more' }, h('summary', null, 'More: any address, peripheral inputs, CSR switches, live state and the address routing table'),
       h('div', { class: 'sb-work' }, tryBox, stateBox), routing);
     setKids(root, figure, detailBox, more, announcer);
     setKids(holder, root);
@@ -552,8 +594,8 @@
     }
     function drawSvg() {
       var svgEl = s('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'group', 'aria-labelledby': uid + '-st', 'aria-describedby': uid + '-sd', class: 'sb-svg' });
-      s('title', { id: uid + '-st', text: 'Representative Prism system: Base core tile, fabric, system_bus, RAM, boot ROM, mmio_cdc, peripheral decoder, six devices and interrupt wires' }, svgEl);
-      s('desc', { id: uid + '-sd', text: 'The core’s D-cache sends RAM line traffic or one uncached beat over cache_fabric_if to the direct fabric and system_bus. system_bus routes to RAM, the boot ROM, or over mmio_if through mmio_cdc into the peripheral clock domain, where mmio_decode_bus selects timer0, irq0, gpio_a, uart0, spi0 or gpio_b, or answers with an error. Separate interrupt wires run from gpio_a, gpio_b, uart0 and spi0 into irq0, from irq0 through two clock-domain flops to the core’s external interrupt, and from timer0 through its own two flops to the core’s timer interrupt.' }, svgEl);
+      s('title', { id: uid + '-st', text: 'One Prism configuration: Base core tile, fabric, system_bus, RAM, boot ROM, mmio_cdc, peripheral decoder, uart0, gpio0, irq0 and interrupt wires' }, svgEl);
+      s('desc', { id: uid + '-sd', text: 'The core’s D-cache sends RAM line traffic or one uncached beat over cache_fabric_if to the direct fabric and system_bus. system_bus routes to RAM, the boot ROM, or over mmio_if through mmio_cdc into the peripheral clock domain, where mmio_decode_bus selects uart0, gpio0 or irq0, or answers with an error. Separate interrupt wires run from uart0 and gpio0 into irq0, and from irq0 through two clock-domain flops to the core’s external interrupt.' }, svgEl);
       // Clock domains.
       s('rect', { x: 8, y: 8, width: SPLIT - 8, height: H - 16, rx: 14, class: 'sb-domain sb-domain-cpu' }, svgEl);
       s('rect', { x: SPLIT, y: 8, width: W - SPLIT - 8, height: H - 16, rx: 14, class: 'sb-domain sb-domain-per' }, svgEl);
@@ -565,7 +607,7 @@
       s('text', { x: 32, y: 68, class: 'sb-tile-label', text: 'Processor tile' }, svgEl);
       // Peripheral bank boundary.
       s('rect', { x: 884, y: 54, width: 446, height: G.irqY + G.irqH - 54 + 18, rx: 12, class: 'sb-bank' }, svgEl);
-      s('text', { x: 898, y: 74, class: 'sb-tile-label', text: 'soc_peripherals (composed for this page)' }, svgEl);
+      s('text', { x: 898, y: 74, class: 'sb-tile-label', text: 'soc_peripherals (generated from the SoC manifest)' }, svgEl);
 
       var wireLayer = s('g', { class: 'sb-wires' }, svgEl), nodeLayer = s('g', { class: 'sb-nodes' }, svgEl);
       packets = s('g', { class: 'sb-packets', 'aria-hidden': 'true' }, svgEl);
@@ -663,7 +705,7 @@
       }
       part(actions);
       var guard = 0, early = earlyComplete.checked;
-      while (withHandler && autoHandler.checked && st.cpu.context === 'handler' && st.cpu.mcause !== null && (st.cpu.mcause >>> 31) && guard++ < 4) {
+      while (withHandler && (autoHandler.checked || withHandler === 'force') && st.cpu.context === 'handler' && st.cpu.mcause !== null && (st.cpu.mcause >>> 31) && guard++ < 4) {
         part(handlerFor(st, early));
         early = false;
       }
@@ -673,26 +715,33 @@
     function mtimeLow(st) { return Number(st.timer.mtime & BigInt(0xFFFFFFFF)) >>> 0; }
     function handlerFor(st, early) {
       var irq = L.byName.irq0.base;
-      if (st.cpu.mcause === Model.CAUSE.timer) {
+      if (st.cpu.mcause === Model.CAUSE.timer && L.byName.timer0) {
         return [acc('sw', L.byName.timer0.base, 8, (mtimeLow(st) + soc.PRESET_TIMER_GAP) >>> 0, 'Handler: MTIMECMP_LOW ← MTIME + ' + soc.PRESET_TIMER_GAP + ' (clears timer_irq)'), { type: 'mret', chapter: 'Handler: mret' }];
+      }
+      var claimed = st.cpu.claimed && ((st.irq.inService >>> (st.cpu.claimed - 1)) & 1) ? st.cpu.claimed : 0;
+      if (claimed) {
+        var cd = L.sources.filter(function (x) { return x.id === claimed; })[0];
+        return [clearAction(cd, 'Handler: '), acc('sw', irq, 0x18, claimed, 'Handler: complete (sw ' + claimed + ' → CURRENT_IRQ)'), { type: 'mret', chapter: 'Handler: mret' }];
       }
       var id = soc.irqView(st).winner;
       if (!id) return [acc('lw', irq, 0x18, 0, 'Handler: claim returns 0 (nothing active)'), { type: 'mret', chapter: 'Handler: mret' }];
       var d = L.sources.filter(function (x) { return x.id === id; })[0];
-      var clear = d.component === 'gpio' ? acc('sw', d.base, 0x1C, 0xFF, 'Handler: clear ' + d.name + ' IRQ_PENDING (write one to clear)')
-        : d.component === 'uart' ? acc('lw', d.base, 4, 0, 'Handler: read uart0 RX (clears RX_VALID)')
-        : acc('lw', d.base, 0, 0, 'Handler: read spi0 DATA (clears RX_VALID)');
+      var clear = clearAction(d, 'Handler: ');
       var claim = acc('lw', irq, 0x18, 0, 'Handler: claim (lw CURRENT_IRQ → ' + id + ')');
       var complete = acc('sw', irq, 0x18, id, 'Handler: complete (sw ' + id + ' → CURRENT_IRQ)');
       var ret = { type: 'mret', chapter: 'Handler: mret' };
       return early ? [claim, complete, ret] : [claim, clear, complete, ret];
     }
+    // The service step that removes a device's cause, as its RTL defines it.
+    function clearAction(d, prefix) {
+      return d.component === 'gpio' ? acc('sw', d.base, 0x1C, 0xFF, (prefix || '') + 'clear ' + d.name + ' IRQ_PENDING (write one to clear)')
+        : acc('lw', d.base, 4, 0, (prefix || '') + 'read ' + d.name + ' RX (clears RX_VALID)');
+    }
     function raise(name) {
       var st = story ? story.final : committed, d = L.byName[name], actions;
       if (d.component === 'gpio') actions = [{ type: 'gpio', bank: d.bank, pin: 0, level: (st.gpio[d.bank].pins & 1) ? 0 : 1 }];
       else if (d.component === 'uart') { actions = [{ type: 'uart-rx', byte: rxNext }]; rxNext = rxNext >= 0x5A ? 0x41 : rxNext + 1; }
-      else if (d.component === 'spi') actions = [acc('sw', d.base, 0, 0x3C, 'sw 0x3C → spi0 DATA (starts a frame)'), { type: 'time', until: 'event', chapter: 'The frame finishes' }];
-      else actions = st.timer.mtime < st.timer.mtimecmp ? [{ type: 'time', until: 'event', chapter: 'MTIME counts up to MTIMECMP' }] : [{ type: 'note', title: 'timer_irq is already 1 (MTIME ≥ MTIMECMP)', parts: ['dev_timer0'] }];
+      else return;
       start(actions, name + ' raises its interrupt', false, null, true);
     }
     function resetAll() {
@@ -775,7 +824,7 @@
       progress.textContent = none ? 'Ready' : 'Hop ' + (idx + 1) + ' of ' + view.length;
       var ch = cur && story.chapters[cur.chapter];
       if (cur) setKids(stepTitle, ch ? h('span', { class: 'sb-chapter-tag', text: ch.title }) : null, cur.title);
-      else setKids(stepTitle, 'Click ', h('strong', { text: 'gpio_a, gpio_b, uart0, spi0 or timer0' }), ' in the diagram to raise its interrupt.');
+      else setKids(stepTitle, 'Click ', h('strong', { text: 'gpio0 or uart0' }), ' in the diagram to raise its interrupt, then the other to see both pending; or run a load or store above.');
       stepTitle.className = 'sb-step-title' + (cur && cur.tone === 'error' ? ' is-error' : '');
       root.classList.toggle('has-step', !!cur);
       // Highlights.
@@ -805,8 +854,8 @@
       var v = soc.irqView(st);
       var lv = {};
       L.sources.forEach(function (d) { lv['w_irq_' + d.name] = soc.deviceIrq(st, d); });
-      lv.w_ext_irq = v.irq; lv.w_tim_irq = soc.timerIrq(st);
-      lv.w_ext_core = st.cpu.extSync[1] === 1; lv.w_tim_core = st.cpu.timSync[1] === 1;
+      lv.w_ext_irq = v.irq;
+      lv.w_ext_core = st.cpu.extSync[1] === 1;
       Object.keys(lv).forEach(function (id) {
         if (!wires[id]) return;
         wires[id].g.classList.toggle('is-high', !!lv[id]);
@@ -836,7 +885,7 @@
       var c = st.cpu, v = soc.irqView(st);
       setLines('core', ['lw/sw access in MEM', c.context === 'handler' ? 'In a trap handler' : 'Running the main program', c.context === 'handler' ? 'mcause ' + F.hex32(c.mcause) : '']);
       setLines('caches', ['Internals: Caches tab']);
-      setLines('csr', ['mstatus MIE ' + b(c.mstatusMIE) + ' MPIE ' + b(c.mstatusMPIE), 'mie  MEIE ' + b(c.MEIE) + ' MTIE ' + b(c.MTIE), 'mip  MEIP ' + b(c.MEIP) + ' MTIP ' + b(c.MTIP),
+      setLines('csr', ['mstatus MIE ' + b(c.mstatusMIE) + ' MPIE ' + b(c.mstatusMPIE), 'mie  MEIE ' + b(c.MEIE), 'mip  MEIP ' + b(c.MEIP),
         'eligible: ' + (soc.eligible(st) ? 'yes' : 'no'), c.mcause !== null ? 'mcause ' + F.hex32(c.mcause) : 'mcause —', '', '']);
       setLines('fabric', ['direct', 'data first', 'no queue']);
       setLines('system_bus', ['address_decode', 'RAM · ROM · MMIO', 'BUSY until ready']);
@@ -844,14 +893,11 @@
       setLines('rom', [F.size(L.rom.bytes) + ' installed', 'of ' + F.size(L.rom.reserved) + ' reserved', 'at ' + F.hex32(L.rom.base)]);
       setLines('cdc', ['clk: ' + st.cdc.state, 'pclk: valid ' + st.cdc.active]);
       setLines('decoder', [L.devices.length + ' windows', 'else error']);
-      setLines('dev_timer0', ['MTIME ≥ CMP → ' + b(soc.timerIrq(st))]);
-      ['a', 'b'].forEach(function (k) { var x = st.gpio[k]; setLines('dev_gpio_' + k, ['pend ' + F.hex8(x.pend) + ' & en ' + F.hex8(x.ie)]); });
+      setLines('dev_gpio0', ['pend ' + F.hex8(st.gpio.a.pend) + ' & en ' + F.hex8(st.gpio.a.ie)]);
       setLines('dev_uart0', ['pend ' + F.bits(soc.uartPending(st.uart), 4) + ' & en ' + F.bits(st.uart.ie, 4)]);
-      setLines('dev_spi0', ['RX_VALID ' + b(st.spi.rxValid) + ' & en ' + b(st.spi.ie)]);
-      setLines('dev_irq0', ['PENDING ' + F.bits(v.pending, 4), 'ENABLE  ' + F.bits(st.irq.enable, 4), 'IN-SERV ' + F.bits(st.irq.inService, 4), 'ACTIVE  ' + F.bits(v.active, 4), 'claim → ID ' + v.winner, 'irq out ' + b(v.irq)]);
-      setLines('dev_none', ['omitted devices, gaps']);
+      setLines('dev_irq0', ['PENDING ' + F.bits(v.pending, 4), 'ENABLE  ' + F.bits(st.irq.enable, 4), 'IN-SERV ' + F.bits(st.irq.inService, 4), 'ACTIVE  ' + F.bits(v.active, 4), 'PRIO s0 ' + st.irq.prio[0] + ' · s2 ' + st.irq.prio[2], 'claim → ID ' + v.winner, 'irq out ' + b(v.irq)]);
+      setLines('dev_none', ['spi, timer and other', 'uninstalled windows']);
       setLines('sync_ext', ['flops ' + c.extSync[0] + ' → ' + c.extSync[1]]);
-      setLines('sync_tim', ['flops ' + c.timSync[0] + ' → ' + c.timSync[1]]);
     }
     function b(x) { return x ? '1' : '0'; }
     function trim(t, n) { return t.length > n ? t.slice(0, n - 1) + '…' : t; }
@@ -950,22 +996,20 @@
         h('div', { class: 'table-scroll', role: 'region', tabindex: '0', 'aria-label': 'irq0 sources' },
           h('table', { class: 'sb-table sb-irq-table' }, h('caption', { class: 'visually-hidden', text: 'irq0 sources' }), h('thead', null, h('tr', null, head.map(function (x) { return h('th', { scope: 'col', text: x }); }))), h('tbody', null, body))),
         h('dl', { class: 'sb-chain' },
-          chain('irq0 claim winner', v.winner ? 'ID ' + v.winner + ' (' + srcLabel(v.winner) + ')' : '0 (none active)'),
+          chain('irq0 claim winner', v.winner ? 'ID ' + v.winner + ' (' + srcLabel(v.winner) + ')' + (soc.arbitration(st).why ? ': ' + soc.arbitration(st).why : '') : '0 (none active)'),
           chain('peripheral_external_irq', v.irq ? '1' : '0', v.irq),
           chain('external_sync', c.extSync[0] + ' → ' + c.extSync[1], c.extSync[1] === 1),
           chain('mip.MEIP · mie.MEIE', b(c.MEIP) + ' · ' + b(c.MEIE), c.MEIP && c.MEIE),
-          chain('timer0: MTIME ≥ MTIMECMP', F.hex64(st.timer.mtime) + ' vs ' + F.hex64(st.timer.mtimecmp) + ' → ' + (soc.timerIrq(st) ? '1' : '0'), soc.timerIrq(st)),
-          chain('timer_sync', c.timSync[0] + ' → ' + c.timSync[1], c.timSync[1] === 1),
-          chain('mip.MTIP · mie.MTIE', b(c.MTIP) + ' · ' + b(c.MTIE), c.MTIP && c.MTIE),
+          chain('Base CPU cause priority', 'write-back error 16 > external 11 > software 3 > timer 7; only external is wired here'),
           chain('mstatus.MIE · MPIE', b(c.mstatusMIE) + ' · ' + b(c.mstatusMPIE)),
           chain('Trap eligible', soc.eligible(st) ? 'yes' : 'no', soc.eligible(st)),
           chain('Core', c.context === 'handler' ? 'in handler; mcause ' + F.hex32(c.mcause) + ' (' + (Model.CAUSE_NAME[c.mcause] || '') + ')' : 'main program')));
       // Devices.
       var u = st.uart, p = st.spi;
       setKids(devBox, h('dl', { class: 'sb-chain' },
-        ['a', 'b'].map(function (k) { var x = st.gpio[k]; return chain('gpio_' + k, 'pins ' + F.hex8(x.pins) + ', INPUT ' + F.hex8(x.sync) + ', OUTPUT ' + F.hex8(x.out) + ', OE ' + F.hex8(x.oe) + ', IRQ_RISE ' + F.hex8(x.rise) + ', IRQ_FALL ' + F.hex8(x.fall)); }),
+        (function (x) { return chain('gpio0', 'pins ' + F.hex8(x.pins) + ', INPUT ' + F.hex8(x.sync) + ', OUTPUT ' + F.hex8(x.out) + ', OE ' + F.hex8(x.oe) + ', IRQ_RISE ' + F.hex8(x.rise) + ', IRQ_FALL ' + F.hex8(x.fall) + ', IRQ_PENDING ' + F.hex8(x.pend)); })(st.gpio.a),
         chain('uart0', (u.txBusy ? 'sending ' + F.hex8(u.txByte) + ' (' + soc.uartLeft(u) + ' clocks left)' : 'TX idle') + '; RX ' + F.hex8(u.rxByte) + ', RX_VALID ' + b(u.rxValid) + ', OVERRUN ' + b(u.overrun) + ', FRAME_ERROR ' + b(u.frameError) + '; DIVIDER ' + u.divider + (u.sent.length ? '; sent ' + u.sent.map(F.hex8).join(' ') : '')),
-        chain('spi0', (p.busy ? 'frame ' + F.hexShort(p.frame) + ' (' + soc.spiLeft(p) + ' clocks left)' : 'idle') + '; DATA ' + F.hexShort(p.received) + ', RX_VALID ' + b(p.rxValid) + ', cs_n ' + (p.csHold || p.busy ? 0 : 1) + ', FRAME_BITS ' + p.frameBits + ', DIVIDER ' + p.divider),
+        chain('D-cache store queue', st.sq.length ? st.sq.map(function (e, i) { return '[' + i + '] ' + F.hex32(e.address) + ' ← ' + F.hex32(e.value); }).join(', ') + ' (' + st.sq.length + ' of ' + soc.STORE_QUEUE_SIZE + ')' : 'empty (0 of ' + soc.STORE_QUEUE_SIZE + ')'),
         chain('Peripheral time', st.time + ' peripheral_clk edges counted since reset')));
     }
     function condText(st, d) {
@@ -992,7 +1036,7 @@
     }
     function controlsUpdate() {
       var st = committed;
-      ['a', 'b'].forEach(function (k) {
+      Object.keys(pinRows).forEach(function (k) {
         Array.prototype.forEach.call(pinRows[k].querySelectorAll('.sb-pin'), function (btn) {
           var pin = +btn.getAttribute('data-pin'), on = (st.gpio[k].pins >> pin) & 1;
           btn.setAttribute('aria-pressed', String(!!on));
@@ -1001,21 +1045,35 @@
       });
       csrBoxes['mstatus.MIE'].checked = st.cpu.mstatusMIE;
       csrBoxes['mie.MEIE'].checked = st.cpu.MEIE;
-      csrBoxes['mie.MTIE'].checked = st.cpu.MTIE;
       setKids(completeBtn, completeButtons(st, true));
       setKids(coreState, 'At the end of the current story: ', h('strong', { text: st.cpu.context === 'handler' ? 'in a trap handler (mcause ' + F.hex32(st.cpu.mcause) + ')' : 'running the main program' }), '. ',
         'Trap eligible: ', h('strong', { text: soc.eligible(st) ? 'yes' : 'no' }), '.');
       setKids(presetNote, usePreset
-        ? [h('strong', { text: 'Teaching preset' }), h('span', { class: 'sb-preset-long', text: ': firmware has already enabled every path (GPIO pin-0 edges, UART RX, SPI completion, irq0 sources 0–3, MTIMECMP = ' + soc.PRESET_TIMER_GAP + ', mie.MEIE, mie.MTIE, mstatus.MIE).' }), ' ']
-        : [h('strong', { text: 'Reset values' }), h('span', { class: 'sb-preset-long', text: ': every enable is 0 and MTIMECMP = 0, so events are recorded in the devices but nothing reaches the core.' }), ' '],
+        ? [h('strong', { text: 'Firmware setup' }), h('span', { class: 'sb-preset-long', text: ': firmware has already enabled every path (gpio0 pin-0 edges, uart0 RX, irq0 sources 0 and 2, mie.MEIE, mstatus.MIE). Every PRIORITY_n keeps its reset value 1.' }), ' ']
+        : [h('strong', { text: 'Reset values' }), h('span', { class: 'sb-preset-long', text: ': every enable is 0, so events are recorded in the devices but nothing reaches the core.' }), ' '],
         presetBtn);
-      presetBtn.textContent = usePreset ? 'Use reset values instead' : 'Use the teaching preset';
-      var c = st.cpu;
-      if (c.context === 'handler') {
-        setKids(handlerBar, h('span', { class: 'sb-handler-label', text: 'In the trap handler (mcause ' + F.hex32(c.mcause) + '):' }),
-          h('button', { type: 'button', onclick: function () { start([acc('lw', L.byName.irq0.base, 0x18, 0, 'Claim')], 'Claim', false); } }, 'Claim'),
-          completeButtons(st, false),
-          h('button', { type: 'button', onclick: function () { start([{ type: 'mret' }], 'mret', false); } }, 'mret'));
+      presetBtn.textContent = usePreset ? 'Use reset values instead' : 'Use the firmware setup';
+      var c = st.cpu, v = soc.irqView(st);
+      // Arbitration summary: who is pending, who a claim would return, and why.
+      var arb = soc.arbitration(st);
+      var pendingNames = L.sources.filter(function (d) { return (v.pending >>> d.bit) & 1; }).map(function (d) { return d.name; });
+      var served = L.sources.filter(function (d) { return (st.irq.inService >>> d.bit) & 1; }).map(function (d) { return d.name + ' (ID ' + d.id + ')'; });
+      setKids(arbBox, h('p', null, h('strong', { text: 'irq0: ' }),
+        pendingNames.length ? 'pending ' + pendingNames.join(' and ') : 'nothing pending',
+        served.length ? '; in service ' + served.join(', ') : '',
+        arb.winner ? ['. A claim now returns ', h('strong', { text: arb.winner.name + ' (ID ' + arb.winner.id + ')' }), ': ' + arb.why + '.'] : '.'),
+        h('p', { class: 'sb-dim' }, 'Device priority belongs to irq0 (PRIORITY_n, reset 1, ties to the lower source). Base’s own cause priority (write-back error, external, software, timer) only picks among mip lines; both devices share the external line.'));
+      var anyLevel = L.sources.some(function (d) { return soc.deviceIrq(st, d); });
+      if (c.context === 'handler' || st.irq.inService || anyLevel) {
+        var clears = L.sources.filter(function (d) { return soc.deviceIrq(st, d); }).map(function (d) {
+          var a = clearAction(d);
+          return h('button', { type: 'button', onclick: function () { start([a], a.chapter, false); } }, d.component === 'gpio' ? ['Clear gpio0: ', code('sw'), ' 1 → IRQ_PENDING'] : ['Service uart0: ', code('lw'), ' RX']);
+        });
+        setKids(handlerBar, h('span', { class: 'sb-handler-label', text: c.context === 'handler' ? 'In the trap handler (mcause ' + F.hex32(c.mcause) + '):' : 'Service steps:' }),
+          h('button', { type: 'button', onclick: function () { start([acc('lw', L.byName.irq0.base, 0x18, 0, 'Claim')], 'Claim', false); } }, 'Claim: ', code('lw'), ' CURRENT_IRQ'),
+          clears, completeButtons(st, false),
+          c.context === 'handler' ? h('button', { type: 'button', onclick: function () { start([{ type: 'mret' }], 'mret', false); } }, code('mret')) : null,
+          c.context === 'handler' ? h('button', { type: 'button', class: 'sb-small-btn', onclick: function () { start([], 'Finish the handler', false, null, 'force'); } }, 'Finish this handler') : null);
       } else setKids(handlerBar);
     }
 

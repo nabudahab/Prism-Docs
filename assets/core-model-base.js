@@ -4,6 +4,9 @@
   var R = 'source/core_tiles/base/rtl/';
   var DP = R + 'pipeline/datapath.sv';
   var C = 'source/core_tiles/common/rtl/pipeline/units/';
+  var DC = 'source/caches/probed_data/rtl/';
+  var IC = 'source/caches/instruction/rtl/';
+  var CI = 'source/contracts/interfaces/';
 
   function bar(id, x, label, text) {
     return { kind: 'bar', x: x, y: 70, w: 16, h: 740, label: '', clk: false,
@@ -12,36 +15,36 @@
 
   var blocks = {
     ifid: bar('ifid', 340, 'IF/ID', ['Holds one fetched instruction with its PC, PC+4 and prediction. It loads when fetch hits and decode can accept; a load-use or multiply-use hazard holds it; a redirect, fence, HALT, WFI or older fault invalidates it.']),
-    idex: bar('idex', 730, 'ID/EX', ['Carries decoded controls, the register-file snapshot, the forwarding grants chosen in ID, the immediate, the PC-relative target and the prediction checks. A hazard sends an invalid bubble instead of the decoded instruction.', 'While EX is held behind a MEM wait, the bar re-captures the resolved operands so a departing WB value is not lost.']),
+    idex: bar('idex', 730, 'ID/EX', ['Carries decoded controls, the register-file snapshot (with a value retiring from WB on the same edge already overlaid), the forwarding grants chosen in ID, the immediate, the PC-relative target and the prediction checks. A hazard sends an invalid bubble instead of the decoded instruction.', 'While EX is held behind a MEM wait, the bar re-captures the resolved operands so a departing WB value is not lost.']),
     exmem: bar('exmem', 1210, 'EX/MEM', ['Carries the ALU result, store data, resolved operands, CSR old/new values, the branch outcome the divide’s selected quotient or remainder magnitude and sign (divide_magnitude, divide_negate) and, inside the multiplier, the 64-bit product. The D-cache captures its EX tag probe at the same edge.']),
     memwb: bar('memwb', 1690, 'MEM/WB', ['Carries the final write-back value, already selected in MEM, so WB forwarding starts from a register. Loads into MEM/WB only when the MEM instruction completes.']),
 
     npc: { kind: 'mux', x: 60, y: 300, w: 22, h: 110,
-      info: { kind: 'Selector', title: 'Next PC', text: ['`select_next_pc`: an EX redirect wins over a predicted-taken fetch, which wins over PC+4. An EX redirect uses the resolved target (taken), EX PC+4 (not taken) or the instruction PC (HALT).', '`pc_ffs` then applies priority: reset, acknowledged trap or interrupt, MRET, fence completion, WFI, and finally this selection when fetch is accepted or EX redirects.'], src: [DP + ' · select_next_pc, pc_ffs'] } },
+      info: { kind: 'Selector', title: 'Next PC', text: ['`select_next_pc`: an EX redirect wins over a predicted-taken fetch, which wins over PC+4. An EX redirect uses the resolved target (taken) or EX PC+4 (not taken).', '`pc_ffs` then applies priority: reset, accepted trap or interrupt, MRET retiring in WB, fence completion, WFI, and finally this selection when fetch is accepted or EX redirects.'], src: [DP + ' · select_next_pc, pc_ffs'] } },
     pc: { kind: 'reg', x: 100, y: 310, w: 56, h: 90, label: 'PC',
       info: { kind: 'State', title: 'Fetch PC', text: ['Advances when IF/ID accepts the fetch or EX redirects. An I-cache miss holds it while older stages keep draining.'], src: [DP + ' · pc_ffs'] } },
     bp: { kind: 'ctl', x: 190, y: 150, w: 130, h: 80, label: 'Predictor', sub: '16 entries\n2-bit, untagged', badgeX: 232, badgeY: 234,
       info: { kind: 'Front end', title: 'Branch predictor', text: ['Indexed by PC[5:2]. Branches 64 bytes apart share an entry, so one can train the other’s prediction. For BTYPE and JAL opcodes, a weak- or strong-taken counter predicts the learned target. JALR redirects from EX.', 'EX trains the entry when the branch advances: every resolved BTYPE/JAL writes its target and steps its 2-bit counter.'], src: [R + 'frontend/branch_pred.sv'] } },
     icache: { kind: 'mem', x: 190, y: 300, w: 130, h: 110, label: 'I-cache', sub: '16 lines × 8 B\ndirect-mapped', badgeX: 236,
-      info: { kind: 'Cache', title: 'Instruction cache', text: ['128 bytes, direct-mapped, two instructions per line. A hit is combinational from the indexed tag; a miss registers one 8-byte refill on the instruction channel. A redirect during a refill lets that beat finish first.', 'FENCE.I invalidates every line after older refills drain.'], src: [R + 'caches/icache.sv', R + 'interfaces/icache_if.vh'] } },
+      info: { kind: 'Cache', title: 'Instruction cache', text: ['128 bytes, direct-mapped, two instructions per line. A hit is combinational from the indexed tag; a miss registers one 8-byte refill on the instruction channel. A redirect during a refill lets that beat finish first.', 'FENCE.I invalidates every line after older refills drain.'], src: [IC + 'icache.sv', IC + 'icache_uarch_pkg.vh', CI + 'icache_if.vh'] } },
     add4: { kind: 'add', x: 190, y: 440, w: 46, h: 56, label: '+4', tx: 4, info: { kind: 'Adder', title: 'PC + 4', text: ['Sequential fetch address; also carried in the packet for links and not-taken recovery.'], src: [DP + ' · build_ifid'] } },
 
     control: { kind: 'ctl', x: 400, y: 130, w: 140, h: 60, label: 'Control', sub: 'control.sv',
-      info: { kind: 'Decoder', title: 'Control (decode)', text: ['Produces `decode_control_t`: ALU op and operand selects, memory read/write/size, write-back source, branch kind, CSR, multiply op, `mem_forwardable`, HALT, MRET, WFI and fence flags. Illegal encodings, including division and, in the `rv32i` variant, multiply, raise a decode exception.'], src: [R + 'pipeline/units/control.sv', R + 'packages/datapath_packets_pkg.vh'] } },
+      info: { kind: 'Decoder', title: 'Control (decode)', text: ['Produces `decode_control_t`: ALU op and operand selects, memory read/write/size, write-back source, branch kind, CSR, multiply op, `mem_forwardable`, MRET, WFI and fence flags. Illegal encodings, including division and, in the `rv32i` variant, multiply, raise a decode exception.'], src: [R + 'pipeline/units/control.sv', R + 'packages/datapath_packets_pkg.vh'] } },
     bub: { kind: 'mux', x: 575, y: 128, w: 20, h: 64,
       info: { kind: 'Selector', title: 'Bubble insertion', text: ['On a hazard, ID/EX receives an invalid packet with cleared controls instead of the decoded instruction. IF/ID keeps the instruction for the next cycle.'], src: [DP + ' · build_idex'] } },
     rf: { kind: 'box', x: 420, y: 290, w: 150, h: 160, label: 'Register file', ty: 20,
       pins: [[426, 310, 'rs1'], [426, 340, 'rs2'], [426, 432, 'rd, value'], [564, 312, 'rdat1', 'end'], [564, 352, 'rdat2', 'end']],
-      info: { kind: 'State', title: 'Register file', text: ['WB writes on the falling edge, so an instruction in ID reads the value written by WB in the same cycle. Reads use the raw rs1/rs2 fields; only packet validity decides whether they matter.'], src: [R + 'pipeline/units/register_file.sv'] } },
+      info: { kind: 'State', title: 'Register file', text: ['WB writes rd at the rising edge that ends its WB cycle. On that same edge ID/EX captures its operands, so both read ports overlay the departing write: when rs1 or rs2 names the WB destination, the read returns the retiring value instead of the stored one. The edge’s storage update alone would arrive too late for that snapshot.', 'Reads use the raw rs1/rs2 fields; only packet validity decides whether they matter. Nearer producers in EX and MEM still reach EX through the registered forwarding grants.'], src: [R + 'pipeline/units/register_file.sv', R + 'interfaces/register_file_if.vh'] } },
     imm: { kind: 'box', x: 420, y: 490, w: 130, h: 44, label: 'Immediate', sub: 'imm_gen.sv', info: { kind: 'Decoder', title: 'Immediate generator', text: ['Sign-extended immediate, used by the ALU, the target adders and the D-cache probe.'], src: [C + 'imm_gen.sv'] } },
     badd: { kind: 'add', x: 600, y: 530, w: 46, h: 56, label: '+', tx: 4,
       info: { kind: 'Adder', title: 'PC-relative target', text: ['Branch and JAL targets are added in ID and registered, away from the ALU. ID also folds the prediction into `expected_result` and flags `static_error` when a predicted-taken target differs.'], src: [DP + ' · build_idex'] } },
     hz: { kind: 'ctl', x: 420, y: 600, w: 170, h: 54, label: 'Hazard', sub: 'load · mul · div use',
-      info: { kind: 'Control', title: 'Hazard unit', text: ['If the instruction in EX is a load, multiply or divide (its result completes in MEM) and the decoding instruction reads its nonzero destination, hold IF/ID and send a bubble to EX. One bubble is enough: the result then forwards from WB.'], src: [R + 'pipeline/units/hazard.sv', R + 'interfaces/hazard_if.vh'] } },
+      info: { kind: 'Control', title: 'Hazard unit', text: ['If the instruction in EX is a load, multiply or divide (its result completes in MEM) and the decoding instruction reads its nonzero destination, hold IF/ID and send a bubble to EX. One bubble is enough: the result then forwards from WB.', 'Two CSR rules in the datapath (`decode_csr_wait`) also hold ID: a counter access (mcycle, minstret and their cycle/instret aliases) waits until every older instruction has retired, and an older write to mstatus, mie or MWBERR holds the next instruction until that write commits. Ordinary instructions never wait for retirement.'], src: [R + 'pipeline/units/hazard.sv', R + 'interfaces/hazard_if.vh', DP + ' · decode_csr_wait'] } },
     fw: { kind: 'ctl', x: 420, y: 690, w: 170, h: 56, label: 'Forwarding', sub: 'grants for the next EX',
-      info: { kind: 'Control', title: 'Forwarding unit (in ID)', text: ['Matches this instruction’s rs1/rs2 against the producers that will be in MEM and WB when it reaches EX: the current ID/EX and EX/MEM occupants. The younger producer wins. Grants are one-hot (saved, MEM or WB) and registered in ID/EX.', 'Loads and multiplies are not `mem_forwardable`; the hazard unit delays their consumers instead. x0 never matches.'], src: [R + 'pipeline/units/forwarding.sv', R + 'interfaces/forward_if.vh'] } },
+      info: { kind: 'Control', title: 'Forwarding unit (in ID)', text: ['Matches this instruction’s rs1/rs2 against the producers that will be in MEM and WB when it reaches EX: the current ID/EX and EX/MEM occupants. The younger producer wins. Grants are one-hot (saved, MEM or WB) and registered in ID/EX. The current WB occupant needs no grant: the register-file overlay puts its value in the saved snapshot.', 'Loads and multiplies are not `mem_forwardable`; the hazard unit delays their consumers instead. x0 never matches.'], src: [R + 'pipeline/units/forwarding.sv', R + 'interfaces/forward_if.vh'] } },
     csr: { kind: 'trap', x: 600, y: 450, w: 90, h: 50, label: 'CSR file', layer: 'trap',
-      info: { kind: 'State', title: 'CSR file', text: ['ID reads the old value; EX applies older in-flight CSR writes from MEM and WB to it and computes the new value. Software writes commit on the falling edge while the instruction is in WB. Trap entry and MRET update the CSRs through their own registered handoff, also on a falling edge (see Trap unit).', 'Decode traps on unimplemented CSR addresses and writes to read-only CSRs. MWBERR (0x7c0) records lost D-cache write-backs and drives interrupt 16.'], src: [R + 'pipeline/units/csr_file.sv', DP + ' · forward_old_value, calculate_write'] } },
+      info: { kind: 'State', title: 'CSR file', text: ['ID reads the old value. A software write committing from WB on the capture edge is applied to that read first, with the same write rules (`csr_apply_write`), and EX forwards nearer writes from EX/MEM and MEM/WB before computing the new value. Software writes, MINSTRET and MCYCLE, trap entry and MRET all update on rising edges.', 'Counter accesses wait in ID until older instructions retire, so `instret` includes every older instruction. Writes to mstatus, mie and MWBERR hold the next instruction in ID until they commit, so the committed interrupt enables govern its issue.', 'Decode traps on unimplemented CSR addresses and writes to read-only CSRs. MWBERR (0x7c0) records lost D-cache write-backs and drives interrupt 16; an instruction that reads and clears it defers new records from decode through WB, so a loss it has not read survives.'], src: [R + 'pipeline/units/csr_file.sv', R + 'interfaces/csr_file_if.vh', DP + ' · forward_old_value, calculate_write'] } },
 
     fwA: { kind: 'mux', x: 800, y: 305, w: 22, h: 80, pins: [[796, 314, 'rf', 'end'], [796, 339, 'mem', 'end'], [796, 364, 'wb', 'end']],
       info: { kind: 'Selector', title: 'Operand A forwarding', text: ['Applies the grant registered in ID/EX: the saved register value, the MEM bypass or the WB bypass.'], src: [DP + ' · forwarded_operand'] } },
@@ -54,12 +57,12 @@
       info: { kind: 'Execution', title: 'Branch resolution', text: ['Compares the forwarded operands (equal, signed or unsigned less-than) and checks the result against the prediction prepared in ID. A wrong direction, a mismatched predicted target, or any JALR redirects fetch when the instruction leaves EX, and the younger IF/ID and ID/EX occupants are discarded.'], src: [C + 'branch_control.sv', 'source/core_tiles/common/rtl/interfaces/branch_control_if.vh', DP + ' · branch_mispredict, redirect_ex'] } },
     jadd: { kind: 'add', x: 1080, y: 162, w: 40, h: 56, label: '+', tx: 4, info: { kind: 'Adder', title: 'JALR target', text: ['Forwarded rs1 plus immediate, bit 0 cleared.'], src: [DP + ' · jalr_sum'] } },
     tmux: { kind: 'mux', x: 1140, y: 125, w: 20, h: 80, info: { kind: 'Selector', title: 'Resolved target', text: ['`branch_target_ex`: the JALR sum for JALR, otherwise the PC-relative target from ID.'], src: [DP + ' · branch_target_ex'] } },
-    padd: { kind: 'add', x: 1060, y: 560, w: 46, h: 56, label: '+', tx: 4, info: { kind: 'Adder', title: 'D-cache tag probe', text: ['A separate rs1 + imm adder sends the address to the D-cache in EX. The cache captures the tag/way result as the instruction enters MEM, so MEM never recomputes tags.'], src: [DP + ' · probe_address', R + 'caches/dcache.sv · probe_registers'] } },
+    padd: { kind: 'add', x: 1060, y: 560, w: 46, h: 56, label: '+', tx: 4, info: { kind: 'Adder', title: 'D-cache tag probe', text: ['A separate rs1 + imm adder sends the address to the D-cache in EX. The cache captures the tag/way result as the instruction enters MEM, so MEM never recomputes tags.'], src: [DP + ' · probe_address', DC + 'dcache.sv'] } },
     mulpp: { kind: 'alu', x: 930, y: 630, w: 120, h: 80, label: 'MUL ×', tx: 8,
       info: { kind: 'Execution', title: 'Multiplier (EX)', text: ['Each forwarded operand is extended to 33 bits (its sign for a signed operand, zero otherwise), and one 33×33 signed multiply forms the 64-bit product for MUL, MULH, MULHSU and MULHU. It is captured at the EX/MEM edge, inside the multiplier.', 'On 7-series parts synthesis builds it from four DSP48E1 slices whose cascade adders sum the partial products within EX.'], src: [R + 'pipeline/units/multiplier.sv', R + 'interfaces/multiplier_if.vh'] } },
 
     dcache: { kind: 'mem', x: 1280, y: 420, w: 160, h: 140, label: 'D-cache', sub: '8 sets × 2 ways\n16 B lines, write-back', ty: 8, badgeX: 1344,
-      info: { kind: 'Cache', title: 'Data cache', text: ['256 bytes, two-way, write-back and write-allocate, blocking. The access happens in MEM using the tag result probed in EX. A miss holds MEM, EX and ID while the cache writes back a dirty victim and refills two 64-bit beats.', 'Addresses outside cacheable RAM bypass the cache as single uncached beats. A failed refill or uncached response completes the access with `access_fault`, which becomes a precise load/store access fault in MEM. A failed write-back drops the line and is reported through MWBERR (CSR 0x7c0) and interrupt 16.'], src: [R + 'caches/dcache.sv', R + 'interfaces/dcache_if.vh'] } },
+      info: { kind: 'Cache', title: 'Data cache', text: ['256 bytes, two-way, write-back and write-allocate, blocking. The access happens in MEM using the tag result probed in EX, and completes there (`hit`): that is a store’s or MMIO access’s effect point, earlier than its WB retirement and independent of any later dirty write-back. A load miss holds MEM, EX and ID while the cache writes back a dirty victim and refills two 64-bit beats.', 'A cacheable store that misses completes into a four-entry store queue and drains to the cache later, while MEM has nothing for the cache; the Local caches page shows the queue. Addresses outside cacheable RAM bypass the cache as single uncached beats, after the queue empties. A failed refill or uncached response completes the access with `access_fault`, which becomes a precise load/store access fault in MEM. A failed write-back drops the line and is reported through MWBERR (CSR 0x7c0) and interrupt 16.'], src: [DC + 'dcache.sv', DC + 'store_queue.sv', DC + 'dcache_uarch_pkg.vh', CI + 'dcache_if.vh'] } },
     ldx: { kind: 'box', x: 1470, y: 425, w: 84, h: 40, label: 'Extend', info: { kind: 'Datapath', title: 'Load formatting', text: ['Sign- or zero-extends byte and halfword loads.'], src: [DP + ' · format_load'] } },
     div: { kind: 'box', x: 930, y: 735, w: 120, h: 66, label: 'DIV ÷', sub: '3 bits per cycle',
       info: { kind: 'Execution', title: 'Divider (EX)', text: ['Restoring divider for DIV, DIVU, REM and REMU. The first EX cycle captures the operand magnitudes and skips the dividend’s leading zero 3-bit groups; each further cycle forms three quotient bits. The divide stays in EX for 1 + its significant groups: 2 cycles for a dividend below 8, up to 12 for one of 2^30 or more. A zero divisor finishes at capture (quotient all ones, remainder the dividend).', 'In the cycle the divide leaves EX, the divider selects the quotient or remainder and its sign; the EX/MEM edge loads both into the packet (divide_magnitude, divide_negate) with the rest of the payload. Nothing in MEM reads the divider, so the next divide can capture and iterate without touching the one in MEM.', 'A divide that enters EX directly behind a divide with the same rs1, rs2 and signedness, whose rd is neither source, reuses the stored quotient and remainder: decode sets divide_reuse, capture only selects the result and sign, and EX passes it on in one cycle. So div followed by rem on the same registers costs one extra EX cycle.', 'Negative signed dividends are counted as {~a[30:0], 1}, so they can take one cycle more than their magnitude needs. A divide removed from EX by a squash or interrupt is abandoned and recaptured when it re-executes.'], src: [R + 'pipeline/units/divider.sv', R + 'interfaces/divider_if.vh', DP + ' · divide'] } },
@@ -70,14 +73,14 @@
     mbm: { kind: 'mux', x: 1250, y: 680, w: 18, h: 66,
       info: { kind: 'Selector', title: 'MEM bypass value', text: ['`select_mem_result`: the architectural result of the EX/MEM occupant, chosen by its write-back source: ALU result, U-immediate, PC+4 or CSR old value. Loads and multiplies are not available here; decode marks them not `mem_forwardable`.'], src: [DP + ' · select_mem_result'] } },
     rmux: { kind: 'mux', x: 1180, y: 128, w: 20, h: 92, badgeX: 1161, badgeY: 107,
-      info: { kind: 'Selector', title: 'Recovery PC', text: ['By `pcSRC`: the resolved target when taken (BRANCH), the instruction’s PC+4 when not taken (CONTINUE), or its own PC for HALT (HOLD). Used only when EX redirects.', 'In the RTL this case is part of `select_next_pc` in IF; it is drawn here, next to its inputs.'], src: [DP + ' · select_next_pc'] } },
+      info: { kind: 'Selector', title: 'Recovery PC', text: ['By `pcSRC`: the resolved target when taken (BRANCH) or the instruction’s PC+4 when not taken (CONTINUE). Used only when EX redirects.', 'In the RTL this case is part of `select_next_pc` in IF; it is drawn here, next to its inputs.'], src: [DP + ' · select_next_pc'] } },
     wbmux: { kind: 'mux', x: 1590, y: 300, w: 24, h: 270, pins: [[1586, 309, 'pc+4', 'end'], [1586, 339, 'imm', 'end'], [1586, 379, 'alu', 'end'], [1586, 439, 'load', 'end'], [1586, 479, 'csr', 'end'], [1586, 519, 'div', 'end'], [1576, 542, 'mul', 'end']],
       info: { kind: 'Selector', title: 'Write-back value', text: ['Selected in MEM by `writeback.source` (ALU, load, PC+4, LUI immediate, CSR old value, multiply or divide) and registered in MEM/WB.'], src: [DP + ' · build_memwb'] } },
-    wbblk: { kind: 'box', x: 1730, y: 380, w: 86, h: 80, label: 'Write-back', sub: 'falling edge',
-      info: { kind: 'Stage', title: 'Write-back', text: ['A valid, fault-free MEM/WB occupant writes rd on the falling edge (CSR writes too, once). The same value is the WB bypass for EX until the instruction drains.'], src: [DP + ' · select_wb_result'] } },
+    wbblk: { kind: 'box', x: 1730, y: 380, w: 86, h: 80, label: 'Write-back', sub: 'retires at ↑',
+      info: { kind: 'Stage', title: 'Write-back (retirement)', text: ['A fresh, fault-free MEM/WB occupant retires at the rising edge that ends its WB cycle (`retire_fire`): its rd write, its CSR write, the MINSTRET increment and the retirement report form one event, at most one instruction per edge. Its replacement enters MEM/WB on the same edge, so ordinary instructions retire back to back.', 'MRET retires here too: its mstatus update, its redirect to the MEPC target it carried from EX, its MINSTRET count and its report share that edge. Stores and MMIO accesses already took effect in MEM.', 'The same value is the WB bypass for EX, and the register-file overlay hands it to the instruction leaving ID.'], src: [DP + ' · retire_fire, select_wb_result', R + 'observation/datapath_reporter.sv'] } },
 
     trapu: { kind: 'trap', x: 30, y: 600, w: 200, h: 60, label: 'Trap unit', sub: 'oldest exception, IRQ entry', layer: 'trap',
-      info: { kind: 'Control', title: 'Traps, MRET, fence and WFI', text: ['The trap unit selects the oldest exception across stages, including a load/store access fault raised in MEM. Younger traps and MRET wait for an older data access to complete. Acceptance is registered at a rising edge, the CSR file applies entry on the falling edge, and the redirect happens at the next rising edge. Interrupts (including the write-back error interrupt 16) wait for older MEM/WB work to drain.', 'The same PC priority also handles MRET, fence completion (refetch at PC+4) and WFI.'], src: [R + 'pipeline/units/trap_unit.sv', DP + ' · trap_accept, acknowledge_trap, pc_ffs'] } },
+      info: { kind: 'Control', title: 'Traps, MRET, fence and WFI', text: ['The trap unit selects the oldest exception across stages, including a load/store access fault raised in MEM. Younger traps wait for an older data access to complete. Acceptance is registered at a rising edge; at the next rising edge the CSR file records mepc, mcause and mstatus and fetch redirects to mtvec together. Interrupts (including the write-back error interrupt 16) wait for older MEM/WB work to drain. Trap entry does not clear a device’s pending level.', 'MRET carries its forwarded MEPC target from EX through MEM to WB while fetch and decode hold; it redirects when it retires. The same PC priority also handles fence completion (refetch at PC+4) and WFI.'], src: [R + 'pipeline/units/trap_unit.sv', DP + ' · trap_accept, acknowledge_trap, pc_ffs'] } },
     fence: { kind: 'trap', x: 1280, y: 120, w: 160, h: 56, label: 'Fence FSM', sub: 'clean D, invalidate I', layer: 'trap',
       info: { kind: 'Control', title: 'FENCE and FENCE.I', text: ['When a fence owns MEM: clean dirty D-cache lines, invalidate the I-cache for FENCE.I, release, then refetch the next instruction. Younger instructions are discarded.'], src: [DP + ' · instruction_fence'] } },
     fabric: { kind: 'box', x: 690, y: 1000, w: 250, h: 44, label: 'Memory fabric', sub: 'to RAM, ROM and MMIO', layer: 'mem',
@@ -100,7 +103,7 @@
     bp_npc: W([[190, 210], [40, 210], [40, 340], [60, 340]], 'predicted target', { lab: [[84, 187, 'predicted'], [84, 199, 'target']], vt: [118, 210], info: I('Predicted target', 'From the BTB when the counter says taken.') }),
     bp_ifid: W([[320, 190], [340, 190]], 'prediction', { info: I('Prediction', 'Action and target, checked in EX.') }),
     npc_pc: W([[82, 355], [100, 355]], 'next PC', { info: I('Next PC') }),
-    redirect: W([[1200, 174], [1205, 174], [1205, 90], [16, 90], [16, 365], [60, 365]], 'EX recovery PC', { lab: [[420, 84, 'recovery PC from EX']], vt: [680, 90], info: I('Recovery PC', 'Resolved target when taken, EX PC+4 when not taken, or the instruction PC for HALT.') }),
+    redirect: W([[1200, 174], [1205, 174], [1205, 90], [16, 90], [16, 365], [60, 365]], 'EX recovery PC', { lab: [[420, 84, 'recovery PC from EX']], vt: [680, 90], info: I('Recovery PC', 'Resolved target when taken, EX PC+4 when not taken.') }),
     mispredict: W([[1040, 180], [1052, 180], [1052, 110], [71, 110], [71, 304]], 'redirect', { cls: 'ctl', layer: 'ctl', lab: [[90, 104, 'redirect: mispredict or JALR']], info: I('redirect_ex', 'An advancing EX instruction that mispredicted, or any JALR. Selects the recovery PC and invalidates the two younger stages.') }),
     train: W([[970, 150], [970, 130], [255, 130], [255, 150]], 'predictor training', { cls: 'ctl', layer: 'ctl', lab: [[600, 125, 'train predictor']], info: I('Predictor update', 'Sent when the BTYPE/JAL instruction leaves EX.') }),
     // ID
@@ -145,7 +148,7 @@
     mb_pc4: W([[1226, 718], [1250, 718]], 'pc+4 → MEM bypass', { info: I('PC + 4') }),
     mb_csr: W([[1226, 732], [1250, 732]], 'CSR → MEM bypass', { info: I('CSR old value') }),
     memB2: W([[768, 460], [800, 460]], 'MEM bypass → B', { dots: [[768, 460]], info: I('MEM bypass') }),
-    wbB: W([[1773, 848], [758, 848], [758, 370], [800, 370]], 'WB bypass', { dots: [[1773, 848]], lab: [[1020, 843, 'WB bypass']], info: I('WB bypass', 'The value WB is writing this cycle.') }),
+    wbB: W([[1773, 848], [758, 848], [758, 370], [800, 370]], 'WB bypass', { dots: [[1773, 848]], lab: [[1020, 843, 'WB bypass']], info: I('WB bypass', 'The value WB commits at the end of this cycle.') }),
     wbB2: W([[758, 485], [800, 485]], 'WB bypass → B', { dots: [[758, 485]], info: I('WB bypass') }),
     opA: W([[822, 345], [870, 345]], 'operand A', { vt: [824, 316, 'start'], info: I('Forwarded rs1') }),
     opB: W([[822, 460], [870, 460]], 'operand B', { vt: [824, 432, 'start'], info: I('Forwarded rs2') }),
@@ -162,8 +165,7 @@
     j_out: W([[1120, 190], [1140, 190]], 'JALR target', { info: I('JALR target') }),
     t_r: W([[1160, 165], [1168, 165], [1168, 145], [1180, 145]], 'resolved target', { info: I('branch_target_ex', 'JALR sum or the PC-relative target.') }),
     pc4_r: W([[1164, 250], [1164, 175], [1180, 175]], 'EX pc+4 → recovery', { info: I('EX PC+4', 'Recovery for a not-taken branch that was predicted taken.') }),
-    pc_r: W([[1172, 250], [1172, 205], [1180, 205]], 'EX pc → recovery', { info: I('EX PC', 'HALT holds its own PC.') }),
-    pcsrc: W([[1040, 170], [1046, 170], [1046, 104], [1190, 104], [1190, 131]], 'pcSRC', { cls: 'ctl', layer: 'ctl', lab: [[1084, 117, 'pcSRC']], info: I('pcSRC', 'BRANCH when taken, CONTINUE when not, HOLD for HALT.') }),
+    pcsrc: W([[1040, 170], [1046, 170], [1046, 104], [1190, 104], [1190, 131]], 'pcSRC', { cls: 'ctl', layer: 'ctl', lab: [[1084, 117, 'pcSRC']], info: I('pcSRC', 'BRANCH when taken, CONTINUE when not.') }),
     tgt_id: W([[746, 140], [1140, 140]], 'PC-relative target', { lab: [[752, 153, 'pc + imm']], info: I('PC-relative target') }),
     opA_dn: W([[840, 345], [840, 571], [1060, 571]], 'rs1 → probe adder', { info: I('Forwarded rs1') }),
     imm_p: W([[746, 605], [1060, 605]], 'imm → probe adder', { info: I('imm') }),
@@ -197,7 +199,7 @@
     stall: W([[1420, 420], [1420, 215], [1226, 215]], 'mem_stall', { cls: 'ctl', layer: 'ctl', lab: [[1240, 209, 'miss: hold MEM, EX, ID']], info: I('mem_stall', 'An unfinished data access or fence holds MEM; EX and ID wait. WB still drains.') }),
     // WB
     wb_in: W([[1706, 420], [1730, 420]], 'MEM/WB value', { info: I('MEM/WB value') }),
-    wb_rf: W([[1773, 460], [1773, 864], [368, 864], [368, 420], [420, 420]], 'register write', { lab: [[1030, 859, 'rd ← value (falling edge)']], vt: [1773, 600], info: I('Register write', 'Falling edge, so ID reads it in the same cycle.') }),
+    wb_rf: W([[1773, 460], [1773, 864], [368, 864], [368, 420], [420, 420]], 'register write', { lab: [[1030, 859, 'rd ← value (rising edge, read overlay)']], vt: [1773, 600], info: I('Register write', ['Written at the rising edge that ends WB. Inside the register file, a read of the same register returns this value before that edge, so ID/EX captures it on the edge the write happens.']) }),
     // traps
     trap_npc: W([[48, 600], [48, 390], [60, 390]], 'trap/MRET/fence/WFI target', { cls: 'trap', layer: 'trap', lab: [[52, 590, 'trap · mret · fence · wfi']], info: I('Priority redirect', 'Applied in `pc_ffs` ahead of the normal next PC.') }),
     exc: W([[1698, 810], [1698, 930], [130, 930], [130, 660]], 'stage exceptions', { cls: 'trap', layer: 'trap', lab: [[860, 926, 'exceptions from ID, EX, MEM, WB']], info: I('Stage exceptions', 'Each packet carries its own exception; the oldest wins. MEM adds a load/store access fault when the D-cache completes the access with `access_fault`.') }),
@@ -208,13 +210,13 @@
 
   var model = {
     title: 'Base five-stage pipeline',
-    desc: 'Base pipeline: IF with I-cache and branch predictor; ID with decode, register read, hazard and forwarding units; EX with forwarding selectors, ALU, branch resolution, D-cache tag probe and the multiplier forming the full 64-bit product, captured at EX/MEM; MEM with D-cache access, selection of the product half and write-back selection; WB writing the register file on the falling edge.',
+    desc: 'Base pipeline: IF with I-cache and branch predictor; ID with decode, register read with a write-back overlay, hazard and forwarding units; EX with forwarding selectors, ALU, branch resolution, D-cache tag probe and the multiplier forming the full 64-bit product, captured at EX/MEM; MEM with D-cache access, selection of the product half and write-back selection; WB retiring one instruction at the rising edge that ends its cycle.',
     w: 1850, h: 1070,
     layers: [{ key: 'ctl', label: 'control' }, { key: 'trap', label: 'traps & CSRs', on: false }, { key: 'mem', label: 'memory side' }],
     heads: [[165, 22, 'IF'], [543, 22, 'ID'], [978, 22, 'EX'], [1458, 22, 'MEM'], [1773, 22, 'WB'], [348, 62, 'IF/ID'], [738, 62, 'ID/EX'], [1218, 62, 'EX/MEM'], [1698, 62, 'MEM/WB']],
     regions: [{ x: 140, y: 950, w: 1400, h: 110, label: 'memory side', layer: 'mem', lx: 1550, ly: 970 }],
     contracts: [{ id: 'cache_fabric_if', label: 'cache_fabric_if', x1: 140, x2: 1540, y: 975, cx: 815, layer: 'mem' }],
-    contractInfo: { cache_fabric_if: { info: { kind: 'Contract', title: 'cache_fabric_if', text: ['Blocking, non-coherent instruction and data channels from the tile to the fabric. Each carries one 64-bit beat with no IDs; a beat completes on a rising edge with wait low.'], src: ['source/contracts/interfaces/cache_fabric_if.vh'] } } },
+    contractInfo: { cache_fabric_if: { info: { kind: 'Contract', title: 'cache_fabric_if', text: ['Blocking, non-coherent instruction and data channels from the tile to the fabric. Each carries one 64-bit beat with no IDs; a beat completes on a rising edge with wait low.'], src: [CI + 'cache_fabric_if.vh'] } } },
     blocks: blocks,
     wires: wires,
     stages: [['IF', 165], ['ID', 543], ['EX', 978], ['MEM', 1458], ['WB', 1740]],
@@ -295,8 +297,8 @@
     // Next-PC selection
     if (ev.redirect) {
       on('redirect', HOT, true); val('redirect', t.npc); on('mispredict', HOT, true); on('npc_pc', HOT); blk('npc', { on: true });
-      on(t.pcsrc === 1 ? 't_r' : t.pcsrc === 2 ? 'pc_r' : 'pc4_r', HOT, true); on('pcsrc', HOT, true);
-      blk('rmux', { on: true, badge: t.pcsrc === 1 ? 'target' : t.pcsrc === 2 ? 'own PC' : 'PC+4' });
+      on(t.pcsrc === 1 ? 't_r' : 'pc4_r', HOT, true); on('pcsrc', HOT, true);
+      blk('rmux', { on: true, badge: t.pcsrc === 1 ? 'target' : 'PC+4' });
     } else if (t.pcen) {
       var fcol = fd ? col(fd) : 'var(--ink)';
       if (ev.pred) { on('bp_npc', fcol, true); val('bp_npc', v.bpt); } else on('add_npc', fcol);
@@ -325,8 +327,17 @@
       if (d.rs1 && g[0] !== '100') gfx.push('rs1 ← ' + (g[0] === '010' ? 'MEM' : 'WB'));
       if (d.rs2 && g[1] !== '100') gfx.push('rs2 ← ' + (g[1] === '010' ? 'MEM' : 'WB'));
       if (r1 || r2) { on('ins_fw', dc); on('fw_out', dc); blk('fw', { on: true, badge: gfx.join(', ') }); if (gfx.length) { on('fw_ex', dc); on('fw_mem', dc); } }
-      if (d.cls === 'csr') { on('csr_addr', dc); on('csr_rd', dc); blk('csr', { on: true }); }
+      if (d.cls === 'csr') { on('csr_addr', dc); on('csr_rd', dc); blk('csr', { on: true, badge: ev.csrwait ? 'read waits' : 'read' + (S.wb && S.wb.cls === 'csr' && ev.commit ? ' · WB write overlaid' : '') }); }
+      if (ev.csrwait) {
+        on('hz_hold', WAIT, true); on('zero', WAIT, true); on('bub_idex', WAIT, true); blk('bub', { on: true });
+        blk('hz', { wait: true, badge: isCounter(d) ? 'counter: wait for older retirements' : 'wait: interrupt-enable write commits' });
+      }
+      (ev.overlay || []).forEach(function (name) {
+        on(name === 'rs1' ? 'rdat1' : 'rdat2', HOT, true);
+        if (ev.wb_write) val(name === 'rs1' ? 'rdat1' : 'rdat2', ev.wb_write[1]);
+      });
     }
+    var overlayNow = !!(d && ev.overlay && ev.overlay.length && ev.wb_write);
 
     // EX
     var e = S.ex;
@@ -413,27 +424,36 @@
       on('dbeat', WAIT); blk('dcache', { wait: true, badge: DBADGE[ev.dstate] || 'busy' });
     }
 
-    // WB
+    // WB: the fresh occupant retires at the rising edge that closes this cycle.
     var w = S.wb;
     if (w) {
       var wc = col(w);
-      on('wb_in', wc); blk('wbblk', { on: true });
+      on('wb_in', wc); blk('wbblk', { on: true, badge: ev.commit === false ? 'held' : (w.cls === 'mret' ? 'mret retires ↑' : 'retires ↑') });
       if (ev.wb_write) {
         on('wb_rf', wc); val('wb_rf', ev.wb_write[1]);
-        var rfb = ev.wb_write[0] ? 'x' + ev.wb_write[0] + ' ← ' + hex(ev.wb_write[1]) : 'x0: dropped';
-        F.blocks.rf = { on: true, badge: rfb };
+        var rfb = ev.wb_write[0] ? 'x' + ev.wb_write[0] + ' ← ' + hex(ev.wb_write[1]) + ' at ↑' : 'x0: dropped';
+        F.blocks.rf = { on: true, badge: overlayNow ? rfb + ' · overlay to ID/EX' : rfb };
+      }
+      if (w.cls === 'csr' && ev.commit) blk('csr', { on: true, badge: (F.blocks.csr && F.blocks.csr.badge ? F.blocks.csr.badge + ' · ' : '') + 'WB write ↑' });
+      if (ev.mret) {
+        on('trap_npc', HOT, true); on('npc_pc', HOT); blk('npc', { on: true });
+        blk('csr', { on: true, badge: 'mret: mstatus restored ↑' });
+        blk('trapu', { on: true, badge: 'mret redirects from WB' });
       }
     }
+    if (ev.trap) { on('trap_npc', HOT, true); on('npc_pc', HOT); blk('npc', { on: true }); blk('trapu', { on: true, badge: 'entry + redirect ↑' }); blk('csr', { on: true, badge: 'mepc, mcause ↑' }); }
+    else if (!ev.mret && [S.ex, S.mem, S.wb].some(function (x) { return x && x.cls === 'mret'; })) blk('trapu', { on: true, badge: 'mret in flight: front end holds' });
     if (F.wires.ibeat || F.wires.dbeat) blk('fabric', { on: true });
     return F;
   };
 
+  function isCounter(d) { return !!d && d.cls === 'csr' && /\b(m?cycle|m?instret)h?\b/.test(d.text); }
   var CAUSES = { 0: 'instruction address misaligned', 1: 'instruction access fault', 2: 'illegal instruction', 3: 'breakpoint', 4: 'load address misaligned', 5: 'load access fault', 6: 'store address misaligned', 7: 'store access fault', 11: 'environment call from M-mode' };
   function causeText(n) { return (CAUSES[n] || 'cause ' + n) + ' (mcause ' + n + ')'; }
 
   model.isEvent = function (trace, c) {
     var ev = trace.cycles[c].ev, p = c > 0 ? trace.cycles[c - 1].ev : {};
-    return !!ev.trap || ev.redirect || ev.bubble || ev.fwdA === 'mem' || ev.fwdA === 'wb' || ev.fwdB === 'mem' || ev.fwdB === 'wb' ||
+    return !!ev.trap || ev.redirect || ev.bubble || !!ev.mret || !!(ev.overlay && ev.overlay.length) || !!(ev.csrwait && !p.csrwait) || ev.fwdA === 'mem' || ev.fwdA === 'wb' || ev.fwdB === 'mem' || ev.fwdB === 'wb' ||
       (ev.mem_stall && !p.mem_stall) || (ev.if === 'miss' && p.if !== 'miss') || ev.pred || divEvent(trace, c);
   };
   // A divide's capture cycle and the cycle it leaves EX.
@@ -469,7 +489,7 @@
     if (ev.trap) {
       var faulting = ev.trap.stage === 'if' ? null : S[ev.trap.stage];
       say.push('Trap: ' + (faulting ? '`' + faulting.text + '` in ' + ev.trap.stage.toUpperCase() : 'the fetch at `' + hex(t.pc) + '`') + ' raises ' + causeText(ev.trap.cause) +
-        '. It does not retire; it and the younger instructions are discarded, mepc and mcause are written, and fetch restarts at mtvec.');
+        '. It does not retire; it and the younger instructions are discarded. At the next rising edge mepc, mcause and mstatus are written and fetch restarts at mtvec, together.');
     }
     if (ev.sleep) say.push('Asleep after WFI: fetch is off until an enabled interrupt is pending. This bench raises no interrupts.');
     if (ev.redirect && e) {
@@ -514,7 +534,15 @@
     else if (ev.if === 'miss') say.push('I-cache miss at `' + hex(t.pc) + '`: the refill request is registered at the next edge.');
     if (ev.redirect && !fd) say.push('This cycle’s fetch at `' + hex(t.pc) + '` is discarded; the recovery PC is fetched next' + (ev.refill ? ', after the I-cache finishes the refill of `' + hex(ev.refill) + '` already on the instruction channel.' : '.'));
     if (ev.pred && !ev.redirect && fd) say.push('Predictor: the instruction at `' + hex(t.pc) + '` is a taken branch in its table, so fetch goes to `' + hex(t.v.bpt) + '` next.');
-    if (w && ev.wb_write) say.push(ev.wb_write[0] ? 'WB writes `x' + ev.wb_write[0] + '` ← `' + hex(ev.wb_write[1]) + '` on the falling edge.' : 'WB: `' + w.text + '` targets x0; the write is dropped.');
+    if (d && ev.csrwait) {
+      if (isCounter(d)) say.push('`' + d.text + '` waits in ID until every older instruction has retired, so the counter includes all of them. Only counter accesses wait like this.');
+      else say.push('`' + d.text + '` waits in ID: an older write to mstatus, mie or MWBERR must commit first, so the committed interrupt enables decide whether it may issue.');
+    }
+    if (ev.overlay && ev.overlay.length && d && w && ev.wb_write) say.push('`' + d.text + '` reads `x' + ev.wb_write[0] + '` while `' + w.text + '` leaves WB. The register file overlays the retiring value on its ' + ev.overlay.join(' and ') + ' read, so ID/EX captures `' + hex(ev.wb_write[1]) + '` on the same rising edge that writes it.');
+    if (w && ev.mret) say.push('`mret` retires in WB: on this rising edge mstatus is restored, fetch redirects to the MEPC target it carried from EX, and MINSTRET counts it once.');
+    else if ([e, m, w].some(function (x) { return x && x.cls === 'mret'; })) say.push('`mret` carries its MEPC target toward WB; fetch and decode hold behind it until it retires.');
+    if (w && ev.wb_write) say.push(ev.wb_write[0] ? '`' + w.text + '` retires: `x' + ev.wb_write[0] + '` ← `' + hex(ev.wb_write[1]) + '` at the rising edge that ends this cycle.' : 'WB: `' + w.text + '` targets x0; the write is dropped.');
+    else if (w && ev.commit && !ev.mret) say.push('`' + w.text + '` retires at the rising edge that ends this cycle' + (w.cls === 'csr' ? ', with its CSR write.' : '.'));
     if (!say.length) say.push('No hazards this cycle.');
     lines.push(say.join(' '));
     return lines.map(function (l) { return typeof l === 'string' ? [l] : l; });
@@ -548,7 +576,7 @@
     if (fd) out.push(fd.id);
     return out.map(function (id) { return (trace.rowIds || []).indexOf(id); }).filter(function (i) { return i >= 0; }).sort(function (a, b) { return a - b; });
   };
-  // The second pass of the demo (warm caches) starts at cycle 79; open on a full pipeline in it.
+  // The second pass of the demo (warm caches) starts at cycle 77; open on a full pipeline in it.
   model.startCycle = 95;
 
   window.PrismCoreDiagrams.define('base', model);

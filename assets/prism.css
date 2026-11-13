@@ -823,3 +823,15 @@ main:has(> .layer-page) { padding-top: 1rem; }
   .layer-tabs a { min-height: 2.75rem; }
   .layer-tabs .layer-label { white-space: nowrap; }
 }
+
+/* Configuration panel above each interactive demo. */
+.demo-config { margin: 0 0 1rem; padding: 0.55rem 0.9rem; border: 1px solid var(--rule); border-left: 3px solid var(--accent, var(--link)); border-radius: 6px; background: var(--sunken); font-size: 0.9rem; }
+.demo-config > summary { cursor: pointer; line-height: 1.45; }
+.demo-config[open] > summary { margin-bottom: 0.5rem; }
+.demo-config .demo-config-status { margin: 0 0 0.5rem; padding: 0.35rem 0.6rem; border-radius: 4px; background: var(--surface); }
+.demo-config table { font-size: 0.84rem; }
+.demo-config p { margin: 0.45rem 0 0; }
+.demo-config-links a { white-space: nowrap; }
+.demo-config-brief { color: var(--muted); }
+.demo-config > summary::after { content: ' Show manifests and parameters'; color: var(--link); text-decoration: underline; }
+.demo-config[open] > summary::after { content: ' Hide'; }

@@ -20,7 +20,8 @@
   function hx(n) { return (n >>> 0).toString(16); }
   function hex8(n) { return ('0000000' + hx(n)).slice(-8); }
 
-  var CSR_NAMES = { 0x300: 'mstatus', 0x304: 'mie', 0x305: 'mtvec', 0x341: 'mepc', 0x342: 'mcause', 0xb00: 'mcycle' };
+  var CSR_NAMES = { 0x300: 'mstatus', 0x304: 'mie', 0x305: 'mtvec', 0x341: 'mepc', 0x342: 'mcause', 0x7c0: 'mwberr', 0xb00: 'mcycle', 0xb02: 'minstret',
+    0xb80: 'mcycleh', 0xb82: 'minstreth', 0xc00: 'cycle', 0xc02: 'instret', 0xc80: 'cycleh', 0xc82: 'instreth' };
   var ALU_R = { '0,0': 'add', '0,32': 'sub', '1,0': 'sll', '2,0': 'slt', '3,0': 'sltu', '4,0': 'xor', '5,0': 'srl', '5,32': 'sra', '6,0': 'or', '7,0': 'and' };
   var MULDIV = ['mul', 'mulh', 'mulhsu', 'mulhu', 'div', 'divu', 'rem', 'remu'];
   var ALU_I = { 0: 'addi', 2: 'slti', 3: 'sltiu', 4: 'xori', 6: 'ori', 7: 'andi', 1: 'slli', 5: 'srli' };
@@ -74,6 +75,7 @@
         var t;
         if (f3 === 5 && rd === 0) t = 'csrwi ' + cname + ', ' + rs1;
         else if (f3 === 1 && rd === 0) t = 'csrw ' + cname + ', x' + rs1;
+        else if (f3 === 2 && rs1 === 0) t = 'csrr x' + rd + ', ' + cname;
         else t = get(CSR_OPS, f3, 'csr') + ' x' + rd + ', ' + cname + ', ' + (f3 >= 5 ? rs1 : 'x' + rs1);
         set({ cls: 'csr', rd: rd, rs1: f3 >= 5 ? null : rs1, text: t });
       }
@@ -115,9 +117,8 @@
         var faulting = slots[TRAP_STAGE[t.tstage]];
         if (faulting !== null && faulting !== undefined) dyn[faulting].cause = num(t.tcause);
       }
-      // MRET completes in EX: on the acknowledged return the RTL invalidates
-      // its slot, which is architectural completion, not a squash.
-      if (t.mret && slots.ex !== null && dyn[slots.ex].cls === 'mret') dyn[slots.ex].completed = true;
+      // MRET travels through MEM and WB and retires there like any other
+      // instruction; its status update and redirect share that WB edge.
       var fetchPc = num(t.pc), accepted = t.ifb === 1;
       var frame = { slots: { id: slots.id, ex: slots.ex, mem: slots.mem, wb: slots.wb }, fetch_pc: fetchPc, accepted: accepted };
       frames.push(frame);
@@ -188,6 +189,21 @@
     if ('trap' in t) {
       ev.trap = t.trap ? { stage: get(TRAP_STAGES, t.tstage, 'if'), cause: num(t.tcause) } : null;
       ev.sleep = !!t.sleep;
+    }
+    if ('rf' in t) {
+      // Rising-edge retirement: the fresh WB occupant commits at the closing
+      // edge (retire_fire); decode_csr_wait holds ID.
+      ev.commit = !!t.rf;
+      ev.csrwait = !!t.dcw;
+      ev.mret = !!t.mret;
+      // Register-file overlay: ID/EX captures the departing WB value.
+      var ov = [];
+      if (t.we && t.wd && s.id !== null && t.ifa === 1 && !t.nop && !t.dcw) {
+        var di = dyn[s.id];
+        // A nearer EX/MEM producer's grant supersedes the overlay.
+        [['rs1', t.ga], ['rs2', t.gb]].forEach(function (p) { if (di[p[0]] === t.wd && p[1] === '100') ov.push(p[0]); });
+      }
+      ev.overlay = ov;
     }
     return ev;
   }

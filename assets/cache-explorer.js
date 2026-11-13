@@ -39,7 +39,9 @@
   var serial = 0;
   var ABI = 'zero ra sp gp tp t0 t1 t2 s0 s1 a0 a1 a2 a3 a4 a5 a6 a7 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 t3 t4 t5 t6'.split(' ');
   var OPS = { lw: [false, 4], lh: [false, 2], lhu: [false, 2], lb: [false, 1], lbu: [false, 1], sw: [true, 4], sh: [true, 2], sb: [true, 1] };
-  var SPEEDS = [['0.5', '0.5×'], ['1', '1×'], ['2', '2×'], ['4', '4×'], ['8', '8×']];
+  // Medium matches the other architecture demos; Slow leaves time to read each step.
+  var SPEEDS = [['0.35', 'Slow'], ['0.6', 'Medium'], ['1.2', 'Fast'], ['3', 'Faster']];
+  var QUEUE_DEPTHS = [4, 2, 1, 0];
 
   function h(tag, attrs, children) {
     var el = document.createElement(tag);
@@ -549,6 +551,7 @@
       if (kind === 'd' && ms !== null) st.d.sets[ms].ways.forEach(function (w, wi) {
         card(wi ? 300 : 40, 252, w, wi, ms, { focus: v.way === wi, dim: v.way !== undefined && v.way !== wi, words: v.way === wi ? ev.words : null, wordTone: 'dirty' });
       });
+      else if (ev && /^(drain|queue)/.test(ev.kind)) placeholder(ev.title.length > 60 ? ev.title.slice(0, 58) + '…' : ev.title, 'The store queue writes completed stores into the cache in order.');
       else placeholder(ev && ev.kind === 'reset' ? 'Every valid, dirty and LRU bit cleared' : ev && ev.kind === 'invalidate' ? 'Every I-cache line is now invalid' : 'Dirty ways are written back set by set', ev && ev.kind === 'reset' ? 'Dirty data is lost: nothing is written back.' : 'Valid lines stay valid.');
       return root;
     }
@@ -657,7 +660,9 @@
     function newSession(mode, env, start, segments) {
       return { mode: mode, env: env, start: start, ops: [], flat: [], segments: segments || [], summary: null, serial: ++serial };
     }
-    var session = newSession('model', M.createEnv('soc', []), M.createState(), []);
+    var queueDepth = M.STORE_QUEUE_SIZE;
+    function freshState() { return M.createState({ storeQueue: queueDepth }); }
+    var session = newSession('model', M.createEnv('soc', []), freshState(), []);
     var cursor = -1;
 
     /* View-only phase: between decoding a cacheable address and comparing tags,
@@ -670,7 +675,7 @@
         if (e.kind === 'decode' && e.cache === 'd' && e.set !== null && e.set !== undefined && next && next.kind === 'probe') {
           out.push({ kind: 'select', view: true, cache: 'd', tone: 'info', title: 'Bits [6:4] = ' + e.set + ': read set ' + e.set + ', both ways',
             text: 'The set index selects one of the 8 sets. Both ways\' valid bits and tags go to two comparators at once, and their data words are read in parallel. Nothing changes in the arrays.',
-            source: ['source/core_tiles/base/rtl/caches/dcache.sv: probe_hit (cache[probe_addr.idx].frames[way])'], set: e.set, fields: e.fields, address: e.address, state: e.state, flow: null });
+            source: ['source/caches/probed_data/rtl/dcache.sv: probe_hit (cache[probe_addr.idx].frames[way])'], set: e.set, fields: e.fields, address: e.address, state: e.state, flow: null });
         }
       });
       return out;
@@ -711,7 +716,7 @@
       h('summary', { text: 'About these caches' }),
       h('ul', { class: 'cx-facts' }, [
         h('li', {}, [h('strong', { text: 'I-cache' }), ' direct-mapped, 16 lines × 8 bytes (two instructions) = 128 B. Tag [31:7], line [6:3], word [2]. One 8-byte beat refills a line. It caches every fetched address.']),
-        h('li', {}, [h('strong', { text: 'D-cache' }), ' 2-way set-associative, 8 sets × 16-byte lines = 256 B, write-back and write-allocate. Tag [31:7], set [6:4], word [3:2], byte [1:0]. A line moves as two 8-byte beats.']),
+        h('li', {}, [h('strong', { text: 'D-cache' }), ' 2-way set-associative, 8 sets × 16-byte lines = 256 B, write-back and write-allocate. Tag [31:7], set [6:4], word [3:2], byte [1:0]. A line moves as two 8-byte beats. A store queue of STORE_QUEUE_SIZE completed stores (default 4) sits ahead of it: a store miss completes into the queue, loads take data from the youngest store that covers them, and the cache drains the queue in order when it is idle.']),
         h('li', {}, [h('strong', { text: 'Blocking and non-coherent' }), ' One request outstanding per cache. Lines are invalid, valid or dirty.']),
         h('li', {}, [h('strong', { text: 'Cacheable' }), ' Data: only the reserved RAM window 0x8000_0000–0x9FFF_FFFF. Every other data address bypasses the D-cache as one beat. A reserved RAM address with nothing installed is still cacheable; its refill fails.'])
       ]),
@@ -756,6 +761,29 @@
       h('p', { id: id + '-asm-help', class: 'cx-help', text: 'lw rd, offset(rs1) or sw rs2, offset(rs1); also lh, lhu, lb, lbu, sh, sb. One access drives the D-cache directly; run a program to see instruction fetches.' })
     ]);
     var storeWrap = h('span', { class: 'cx-inline' }, [valueLabel, storeValue]);
+    // Destinations in the depicted configuration: RAM is cached, ROM and MMIO are not.
+    var DESTS = [
+      ['RAM', [['0x80000000', 'RAM set 0 · 0x8000_0000'], ['0x80000080', 'RAM set 0, new tag · 0x8000_0080'], ['0x80000100', 'RAM set 0, third tag · 0x8000_0100'], ['0x80000004', 'RAM same line, next word · 0x8000_0004'], ['0x80000040', 'RAM set 4 · 0x8000_0040'], ['0x80010000', 'RAM window past 64 KiB · 0x8001_0000']]],
+      ['Boot ROM (uncached, read-only)', [['0x00000004', 'ROM word · 0x0000_0004']]],
+      ['MMIO (uncached)', [['0x40010004', 'gpio0 OUTPUT · 0x4001_0004'], ['0x40020008', 'uart0 STATUS · 0x4002_0008'], ['0x40002000', 'irq0 PENDING · 0x4000_2000'], ['0x40030000', 'spi region, not installed · 0x4003_0000']]]
+    ];
+    var destSel = h('select', { id: id + '-dest', 'aria-label': 'Destination' }, DESTS.map(function (g) {
+      return h('optgroup', { label: g[0] }, g[1].map(function (d) { return h('option', { value: d[0], text: d[1] }); }));
+    }));
+    function quickAccess(write) {
+      selectTab('a', false);
+      baseSel.value = '5'; baseValue.value = destSel.value; baseValue.disabled = false;
+      asmInput.value = write ? 'sw t1, 0(t0)' : 'lw a0, 0(t0)';
+      syncFromAsm(); formChanged();
+      doAccess();
+    }
+    var loadBtn = h('button', { type: 'button', class: 'cx-primary', text: 'Load', title: 'lw a0, 0(t0) at the chosen destination' });
+    var storeBtn = h('button', { type: 'button', class: 'cx-primary', text: 'Store', title: 'sw t1, 0(t0) at the chosen destination, storing the t1 value' });
+    loadBtn.addEventListener('click', function () { quickAccess(false); });
+    storeBtn.addEventListener('click', function () { quickAccess(true); });
+    var quick = h('div', { class: 'cx-quick', role: 'group', 'aria-label': 'Load or store at a destination' }, [
+      h('label', { for: destSel.id, class: 'cx-inline-label', text: 'Destination' }), destSel, loadBtn, storeBtn
+    ]);
     var panelAccess = h('div', { role: 'tabpanel', id: id + '-panel-a', 'aria-labelledby': tabAccess.id, class: 'cx-panel cx-request' }, [
       h('label', { for: asmInput.id, class: 'visually-hidden', text: 'RISC-V load or store' }), asmInput,
       h('span', { class: 'cx-inline' }, [baseLabel, baseValue]), storeWrap, runAccess, moreToggle
@@ -796,16 +824,21 @@
     var flushBtn = h('button', { type: 'button', class: 'cx-maint', title: 'fence.i: clean the D-cache, then invalidate the I-cache', 'aria-label': 'Flush: fence.i, clean D then invalidate I', text: 'fence.i' });
     var cleanBtn = h('button', { type: 'button', class: 'cx-maint', title: 'fence: write back dirty D lines; every line stays valid', 'aria-label': 'Clean D: fence, write back dirty lines', text: 'fence' });
     var resetBtn = h('button', { type: 'button', class: 'cx-maint', title: 'n_rst: clear both caches; dirty data is lost', 'aria-label': 'Cold reset: clear both caches, dirty data is lost', text: 'Reset' });
+    var drainBtn = h('button', { type: 'button', class: 'cx-maint', title: 'Give the D-cache an idle cycle: it drains its oldest queued store', text: 'Idle: drain' });
+    var depthSel = h('select', { id: id + '-sq', title: 'STORE_QUEUE_SIZE in dcache_uarch_pkg.vh (default 4). Changing it here affects this view only.' }, QUEUE_DEPTHS.map(function (n) { return h('option', { value: String(n), text: n === 4 ? '4 (default)' : n === 0 ? '0 (no queue)' : String(n), selected: n === queueDepth ? 'selected' : null }); }));
+    var depthField = h('span', { class: 'cx-inline cx-sq-depth' }, [h('label', { for: depthSel.id, class: 'cx-inline-label', text: 'Store queue' }), depthSel]);
     var maintHelp = h('details', { class: 'cx-explain' }, [
       h('summary', { id: id + '-mhelp', 'aria-label': 'What the maintenance actions do', title: 'What these do', text: '?' }),
       h('ul', { class: 'cx-popover' }, [
         h('li', {}, [h('strong', { text: 'fence.i (flush)' }), ' cleans the D-cache, then raises icache.invalidate: every I line becomes invalid once any outstanding refill has finished. D lines stay valid.']),
         h('li', {}, [h('strong', { text: 'fence (clean D)' }), ' visits sets 0 to 7 and writes back each dirty way, way 0 first, as two 64-bit beats. Valid bits, tags, data and LRU bits stay.']),
-        h('li', {}, [h('strong', { text: 'Reset' }), ' (n_rst, a cold reset) clears valid, dirty and LRU bits in both caches without writing anything back. halt runs the same clean as fence and then stops.'])
+        h('li', {}, [h('strong', { text: 'Reset' }), ' (n_rst, a cold reset) clears valid, dirty and LRU bits in both caches and empties the store queue without writing anything back. halt runs the same clean as fence and then stops.']),
+        h('li', {}, [h('strong', { text: 'Idle: drain' }), ' gives the D-cache a cycle with no access in MEM, so it moves its oldest queued store into the cache, refilling the line first if it is missing. fence, fence.i and halt drain every queued store before writing back dirty lines.']),
+        h('li', {}, [h('strong', { text: 'Store queue' }), ' depth is STORE_QUEUE_SIZE in the D-cache package (default 4). With 0 there is no queue and a store miss waits for its refill.'])
       ])
     ]);
-    var maintenance = h('div', { class: 'cx-maintenance', role: 'group', 'aria-label': 'Cache maintenance', 'aria-describedby': id + '-mhelp' }, [flushBtn, cleanBtn, resetBtn, maintHelp]);
-    var toolbar = h('div', { class: 'cx-control' }, [h('div', { class: 'cx-toolbar' }, [tablist, panelAccess, panelProgram, maintenance]), asmError, moreFields, programExtra]);
+    var maintenance = h('div', { class: 'cx-maintenance', role: 'group', 'aria-label': 'Cache maintenance', 'aria-describedby': id + '-mhelp' }, [flushBtn, cleanBtn, drainBtn, resetBtn, maintHelp]);
+    var toolbar = h('div', { class: 'cx-control' }, [h('div', { class: 'cx-toolbar' }, [tablist, panelAccess, panelProgram, maintenance]), h('div', { class: 'cx-toolbar cx-toolbar-2' }, [quick, depthField]), asmError, moreFields, programExtra]);
 
     /* player and one-line caption (sticky together) */
     var ICONS = { first: 'M5 4h2v12H5zM16 4v12L8 10z', prev: 'M14 4v12L6 10z', play: 'M6 4v12l10-6z', pause: 'M5 4h3.5v12H5zM11.5 4H15v12h-3.5z', next: 'M6 4v12l8-6z', last: 'M13 4h2v12h-2zM4 4v12l8-6z' };
@@ -817,7 +850,7 @@
     btnPlay.setAttribute('aria-pressed', 'false');
     var btnNext = iconButton('next', 'Next step', 'Next step (→)');
     var btnLast = iconButton('last', 'Go to the last step', 'Last step');
-    var speed = h('select', { id: id + '-speed', 'aria-label': 'Playback speed' }, SPEEDS.map(function (s) { return h('option', { value: s[0], text: s[1], selected: s[0] === '1' ? 'selected' : null }); }));
+    var speed = h('select', { id: id + '-speed', 'aria-label': 'Playback speed' }, SPEEDS.map(function (s) { return h('option', { value: s[0], text: s[1], selected: s[0] === '0.6' ? 'selected' : null }); }));
     var position = h('span', { class: 'cx-position' });
     var sessionBadge = h('span', { class: 'cx-badge' });
     var narrative = h('div', { class: 'cx-narrative' });
@@ -1019,8 +1052,8 @@
       var res = r.result, enc = encodingOf(text);
       var summary;
       if (res.fault) summary = res.fault === 'misaligned' ? 'misaligned' : 'access fault';
-      else if (f.request.write) summary = res.cacheable ? (res.hit ? 'hit, dirty' : 'miss, allocated dirty') : 'uncached write';
-      else summary = (res.cacheable ? (res.hit ? 'hit' : 'miss') : 'uncached') + (res.value !== null && res.value !== undefined ? ' → ' + ABI[p.reg] + ' = ' + hx(signExtend(res.value, p.op)) : ' → ' + ABI[p.reg] + ' = device data');
+      else if (f.request.write) summary = res.queued ? 'completed into the store queue' : res.cacheable ? (res.hit ? 'hit, dirty' : 'miss, allocated dirty') : 'uncached write';
+      else summary = (res.forwarded ? 'forwarded from the store queue' : res.cacheable ? (res.hit ? 'hit' : 'miss') : 'uncached') + (res.value !== null && res.value !== undefined ? ' → ' + ABI[p.reg] + ' = ' + hx(signExtend(res.value, p.op)) : ' → ' + ABI[p.reg] + ' = device data');
       var op = addOp({ kind: 'access', provenance: 'model', label: text, summary: summary, encoding: enc, base: f.base, events: r.events, result: res, rd: f.request.write ? null : p.reg });
       if (switched) say('Continuing from the recorded run\'s final cache state, now in the modeled SoC address map.');
       notifyAccess(res, p.op, 'model');
@@ -1047,6 +1080,8 @@
       var st = liveState(), r, label, summary;
       if (kind === 'flush') { r = M.fenceI(st, session.env); label = 'fence.i (flush)'; summary = r.result.written + ' D line' + (r.result.written === 1 ? '' : 's') + ' written back, ' + r.result.cleared + ' I line' + (r.result.cleared === 1 ? '' : 's') + ' invalidated'; }
       else if (kind === 'clean') { r = M.clean(st, session.env, 'fence'); label = 'fence (clean D)'; summary = r.result.written + ' line' + (r.result.written === 1 ? '' : 's') + ' written back'; }
+      else if (kind === 'drain') { r = M.drainStoreQueue(st, session.env, 1); label = 'idle cycle: drain'; summary = r.result.drained ? 'one queued store drained, ' + r.result.left + ' left' : 'queue already empty'; if (!r.events.length) r.events.push({ kind: 'drain', cache: 'd', tone: 'info', title: 'The store queue is empty', text: 'Nothing to drain: every completed store is already in the cache.', source: [M.RTL.dcache + ': drain_request'], state: JSON.parse(JSON.stringify(st)), flow: null }); }
+      else if (kind === 'depth') { r = M.setStoreQueueSize(st, session.env, queueDepth); label = 'store queue depth ' + queueDepth; summary = queueDepth ? queueDepth + ' entries' : 'no queue'; r.events.push({ kind: 'drain', cache: 'd', tone: 'info', title: 'STORE_QUEUE_SIZE = ' + queueDepth + (queueDepth === M.STORE_QUEUE_SIZE ? ' (the default)' : ''), text: queueDepth ? 'Up to ' + queueDepth + ' completed stores can wait ahead of the cache.' : 'The queue and its logic are absent: every store miss refills its line before it completes.', source: [M.RTL.dpkg + ': STORE_QUEUE_SIZE'], state: JSON.parse(JSON.stringify(r.state)), flow: null }); }
       else { r = M.reset(st); label = 'cold reset'; summary = r.result.lost ? r.result.lost + ' dirty line' + (r.result.lost === 1 ? '' : 's') + ' discarded' : 'caches cleared'; }
       var op = addOp({ kind: kind, provenance: 'model', label: label, summary: summary, events: r.events, result: r.result });
       if (switched) say('Continuing from the recorded run\'s final cache state, now in the modeled SoC address map.');
@@ -1056,6 +1091,12 @@
     flushBtn.addEventListener('click', function () { doMaintenance('flush'); });
     cleanBtn.addEventListener('click', function () { doMaintenance('clean'); });
     resetBtn.addEventListener('click', function () { doMaintenance('reset'); });
+    drainBtn.addEventListener('click', function () { doMaintenance('drain'); });
+    depthSel.addEventListener('change', function () {
+      queueDepth = Number(depthSel.value);
+      doMaintenance('depth');
+      if (typeof options.onConfig === 'function') { try { options.onConfig({ storeQueue: queueDepth }); } catch (e) { /* host callback */ } }
+    });
 
     /* ---------- program editor ---------- */
     function persist() {
@@ -1118,7 +1159,7 @@
       if (!a) {
         return;
       }
-      var r = M.runProgram(a.segments, a.listing, { maxInstructions: 1500, decode: decodeText });
+      var r = M.runProgram(a.segments, a.listing, { maxInstructions: 1500, decode: decodeText, storeQueue: queueDepth });
       // The probe is private: an unsupported instruction sends the whole program
       // to the real core before any partial model state or access is published.
       if (r.stop.reason === 'unsupported') {
@@ -1127,12 +1168,12 @@
         return;
       }
       rtlSummary.hidden = true;
-      session = newSession('model', r.env, M.createState(), a.segments);
+      session = newSession('model', r.env, freshState(), a.segments);
       notifyClear();   // a new program session starts from reset
       var lastAccess = null;
       r.ops.forEach(function (o) {
         var label = stripComment(o.source) || o.text || hx(o.word);
-        var summary = o.access ? (o.access.fault ? 'fault' : o.access.cacheable ? (o.access.hit ? 'D hit' : 'D miss') : 'uncached') : o.fence ? o.fence : o.halt ? 'halt: clean' : '';
+        var summary = o.access ? (o.access.fault ? 'fault' : o.access.queued ? 'store queued' : o.access.forwarded ? 'queue forward' : o.access.cacheable ? (o.access.hit ? 'D hit' : 'D miss') : 'uncached') : o.fence ? o.fence : o.halt ? 'halt: clean' : '';
         var ifetch = o.events[0];
         if (ifetch && ifetch.kind === 'ifetch' && ifetch.tone === 'miss') summary = (summary ? summary + ', ' : '') + 'I miss';
         if (o.events.length) addOp({ kind: 'instruction', provenance: 'model', label: label, pc: o.pc, line: o.line, summary: summary, events: o.events, result: o.access || null, unsupported: o.unsupported });
@@ -1190,7 +1231,7 @@
         var rep = M.replayRecording(rows, a.segments, { cacheCsv: out.csv, dumpHex: stopInfo.reason === 'halt' ? out.dump : null, decode: decodeText });
         var listing = {};
         a.listing.forEach(function (l) { if (!(hex8(l.address) in listing)) listing[hex8(l.address)] = l; });
-        session = newSession('rtl', rep.env, M.createState(), a.segments);
+        session = newSession('rtl', rep.env, M.createState({ storeQueue: M.STORE_QUEUE_SIZE }), a.segments);
         abort = null;
         var last = null;
         rep.ops.forEach(function (o) {
@@ -1199,13 +1240,14 @@
           if (o.kind === 'ifill') { label = 'I refill ' + hxs(r.address); summary = 'instruction beat'; }
           else if (o.kind === 'data') { label = (src && stripComment(src.source)) || o.text || hx(r.word); summary = o.result.cacheable ? (o.result.hit ? 'D hit' : 'D miss') : 'uncached'; last = { res: o.result, mn: label.split(/\s+/)[0] }; }
           else if (o.kind === 'halt') { label = 'halt: terminal clean'; summary = (o.result.written || 0) + ' written back'; }
+          else if (o.kind === 'drain') { label = 'store queue drain'; summary = 'idle cycle: oldest queued store'; }
           else { label = o.kind; summary = (o.result.written || 0) + ' written back'; }
           addOp({ kind: o.kind, provenance: 'rtl', label: label, line: src ? src.line : null, pc: o.pc, cycle: o.cycle, summary: summary + (o.artifact ? ', bench only' : ''), check: o.check, artifact: !!o.artifact, events: o.events, result: o.result });
         });
         session.summary = { stop: stopInfo, rep: rep, source: text };
         renderSummary();
         var counts = rep.ops.filter(function (o) { return o.kind === 'data'; }).length;
-        progStatus.textContent = 'Base RTL run ' + (stopInfo.reason === 'halt' ? 'stopped at halt' : stopInfo.reason === 'max_cycles' ? 'reached the cycle limit' : stopInfo.reason === 'wfi' ? 'reached the cycle limit asleep in WFI' : 'stopped with an error: ' + stopInfo.message) +
+        progStatus.textContent = (queueDepth !== M.STORE_QUEUE_SIZE ? 'The Base RTL model is built with its default four-entry store queue, so this run uses depth ' + M.STORE_QUEUE_SIZE + '. ' : '') + 'Base RTL run ' + (stopInfo.reason === 'halt' ? 'stopped at halt' : stopInfo.reason === 'max_cycles' ? 'reached the cycle limit' : stopInfo.reason === 'wfi' ? 'reached the cycle limit asleep in WFI' : 'stopped with an error: ' + stopInfo.message) +
           (stopInfo.cycle !== null ? ' at cycle ' + stopInfo.cycle : '') + '. ' + counts + ' data access' + (counts === 1 ? '' : 'es') + ' replayed.' +
           (fallback ? ' Selected automatically for “' + fallback.source + '”.' : '');
         if (last) notifyAccess(last.res, last.mn, 'rtl');
@@ -1465,13 +1507,13 @@
 
     var INFO = {
       core: ['Base core', 'IF asks the I-cache for the word at the PC. MEM holds a load or store until the D-cache answers with hit or access_fault. The pipeline itself is on the core tab.', 'source/core_tiles/base/rtl/pipeline/datapath.sv'],
-      icache: ['I-cache', 'Direct-mapped, 16 lines of 8 bytes. Tag [31:7], line [6:3], word [2]. A miss sends one 8-byte read, which installs data, tag and valid together; a failed read never becomes valid. It caches every fetch address. fence.i clears every valid bit.', 'source/core_tiles/base/rtl/caches/icache.sv'],
-      dcache: ['D-cache', '8 sets × 2 ways × 16 bytes, write-back and write-allocate. EX compares both ways\' tags. A miss replaces the way named by the set\'s LRU bit: two write-back beats if it is dirty, then two refill beats. A store marks its line dirty without writing memory. Addresses outside the RAM window leave as one uncached beat and allocate nothing.', 'source/core_tiles/base/rtl/caches/dcache.sv'],
+      icache: ['I-cache', 'Direct-mapped, 16 lines of 8 bytes. Tag [31:7], line [6:3], word [2]. A miss sends one 8-byte read, which installs data, tag and valid together; a failed read never becomes valid. It caches every fetch address. fence.i clears every valid bit.', 'source/caches/instruction/rtl/icache.sv'],
+      dcache: ['D-cache', '8 sets × 2 ways × 16 bytes, write-back and write-allocate. EX compares both ways\' tags. A miss replaces the way named by the set\'s LRU bit: two write-back beats if it is dirty, then two refill beats. A store hit marks its line dirty without writing memory; a store miss completes into the four-entry store queue and drains later. Addresses outside the RAM window wait for the queue to empty, then leave as one uncached beat and allocate nothing.', 'source/caches/probed_data/rtl/dcache.sv'],
       fabric: ['Memory fabric', 'cache_fabric_if has separate 64-bit instruction and data channels, one beat outstanding on each, with no IDs and no coherence. The direct fabric serves the data channel first.', 'source/contracts/interfaces/cache_fabric_if.vh'],
       route: ['Address routing', 'Decodes each beat\'s address: RAM, boot ROM, or the system bus to the peripherals. A reserved address with nothing installed completes with an error.', 'source/soc/packages/memory_map_pkg.vh'],
       ram: ['RAM', '64 KiB installed at 0x8000_0000. The whole reserved window 0x8000_0000–0x9FFF_FFFF is cacheable; a refill past the installed 64 KiB fails.', 'source/soc/packages/memory_map_pkg.vh (is_cacheable)'],
       rom: ['Boot ROM', '4 KiB at 0x0000_0000 (64 KiB reserved). Data loads from it are uncached and writes fail. The I-cache does cache instruction fetches from it.', 'source/soc/packages/memory_map_pkg.vh'],
-      sys: ['Peripherals', 'MMIO aperture 0x4000_0000–0x4FFF_FFFF, always uncached: one masked beat per access, so device side effects happen exactly once. The system bus tab follows these beats to the device and shows interrupts.', 'source/core_tiles/base/rtl/caches/dcache.sv (capture_io)']
+      sys: ['Peripherals', 'MMIO aperture 0x4000_0000–0x4FFF_FFFF, always uncached: one masked beat per access, so device side effects happen exactly once. The system bus tab follows these beats to the device and shows interrupts.', 'source/caches/probed_data/rtl/dcache.sv (capture_io)']
     };
     var BENCH_INFO = {
       route: ['Bench memory agent', 'The Base tile bench has no address router. Its memory agent answers every beat after a fixed delay, aliasing data addresses into its flat 64 KiB: bits [14:0], plus 0x8000 when bit 31 is set.', 'qa/core-diagrams/tracer_patch.py (bench address alias)'],
@@ -1658,6 +1700,17 @@
     }
     function renderD(st, prev, ev) {
       dTable.replaceChildren();
+      var sq = st.d.sq || [], size = typeof st.d.sqSize === 'number' ? st.d.sqSize : M.STORE_QUEUE_SIZE;
+      var slots = [];
+      for (var qi = 0; qi < size; qi++) {
+        var e = sq[qi];
+        slots.push(h('li', { class: 'cx-sq-slot' + (e ? ' is-full' : '') + (qi === 0 && e ? ' is-head' : ''), title: e ? 'Entry ' + qi + (qi === 0 ? ' (oldest, drains next)' : '') : 'Entry ' + qi + ': empty' },
+          e ? [h('span', { class: 'cx-mono', text: e.mnemonic + ' ' + hxs(e.address) }), h('span', { class: 'cx-mono cx-sq-data', text: '← ' + hx(e.size === 4 ? e.data : e.data) })] : [h('span', { class: 'cx-muted', text: 'empty' })]));
+      }
+      dTable.appendChild(h('div', { class: 'cx-sq' + (ev && /^(queue|drain)/.test(ev.kind) ? ' is-active' : ''), role: 'group', 'aria-label': 'Store queue' }, [
+        h('p', { class: 'cx-sq-head' }, [h('strong', { text: 'Store queue' }), size ? ' · ' + sq.length + ' of ' + size + ' in use · oldest first, drains into the cache when idle' : ' · STORE_QUEUE_SIZE = 0: no queue, store misses refill first']),
+        size ? h('ol', { class: 'cx-sq-slots', start: '0' }, slots) : null
+      ]));
       var table = h('table', { class: 'cx-table cx-dtable' });
       table.appendChild(h('caption', { class: 'visually-hidden', text: 'D-cache: for each set, the replacement bit and both ways with state, tag and four data words. Select a set to show it in the lookup diagram.' }));
       table.appendChild(h('thead', {}, [h('tr', {}, [h('th', { scope: 'col', text: 'Set' }), h('th', { scope: 'col', text: 'Way 0' }), h('th', { scope: 'col', text: 'Way 1' })])]));

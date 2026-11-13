@@ -356,11 +356,13 @@
     },
     base: {
       title: 'Base core',
-      lede: 'A five-stage, single-issue pipeline with private I- and D-caches. Branches resolve in EX with a 2-bit predictor in IF; loads, multiplies and divides finish in MEM, and a divide holds EX for 1 to 12 cycles while it iterates; results forward to EX from MEM and WB.',
+      lede: 'A five-stage, single-issue pipeline with private I- and D-caches. Branches resolve in EX with a 2-bit predictor in IF; loads, multiplies and divides finish in MEM, and a divide holds EX for 1 to 12 cycles while it iterates; results forward to EX from MEM and WB. Each instruction retires at the rising edge that ends its WB cycle, one per edge.',
       program: 'base',
       notes: [
         'MUL, MULH, MULHSU and MULHU take one EX cycle. DIV, DIVU, REM and REMU use a divider that forms three quotient bits per cycle after skipping the dividend’s leading zero 3-bit groups, so a divide stays in EX for 2 to 12 cycles, or 1 when the divisor is zero. A dependent instruction waits one bubble after a multiply or divide.',
-        'The animation replays a simulation of the RTL in which memory answers one cycle after a request. The demo program runs its body twice. The first pass, from cycle 0, misses in both caches; the second pass starts at cycle 80 and nearly always hits. The divides after it show the divider’s 2-, 12- and 1-cycle cases, a `rem` that reuses the preceding `div`’s quotient and remainder (1 cycle), and a pair that cannot (the first `div` overwrites a source, so the `rem` divides again). Choose the label `pass` and step between its visits to compare them.'
+        'Retirement: the WB occupant writes its register, its CSR and MINSTRET at the rising edge that ends its WB cycle, while the next instruction enters WB. Both register-file read ports overlay that departing write, so an instruction leaving ID on the same edge captures the new value; nearer producers still forward from MEM and WB to EX. Loads, stores and MMIO accesses take effect earlier, when they complete in MEM.',
+        'Two CSR rules hold decode, and only for these instructions: a counter read (such as `csrr x25, minstret`) waits until every older instruction has retired, and an instruction after a write to `mstatus`, `mie` or MWBERR waits until that write commits. `mret` carries its return address through MEM to WB and redirects when it retires; younger fetch and decode wait for it.',
+        'The animation replays a simulation of the RTL in which memory answers one cycle after a request. The demo program runs its body twice. The first pass, from cycle 0, misses in both caches; the second pass starts at cycle 77 and nearly always hits. The divides after it show the divider’s 2-, 12- and 1-cycle cases, a `rem` that reuses the preceding `div`’s quotient and remainder (1 cycle), and a pair that cannot (the first `div` overwrites a source, so the `rem` divides again). Choose the label `pass` and step between its visits to compare them. The last part, from the label `retire`, runs twice: on the warm pass `addi x24, x21, 3` reads `x21` through the overlay at cycle 221, both counter reads return 4 and 5, and an `ecall` handler returns with `mret`.'
       ]
     }
   };
@@ -383,6 +385,88 @@
       h('p', null, 'All tiles meet the fabric through ', h('code', { text: 'cache_fabric_if' }), ', which is blocking and non-coherent. To write your own, see ', h('a', { href: '#/tutorials/custom-tile', text: 'Write a custom core or tile' }), '.'));
   }
 
+  /* ---------- Demo configuration panels ---------- */
+
+  // Each interactive demo depicts one Prism configuration. The panel names
+  // the manifests and parameter sources that produce it, with their values.
+  var DEMO_TILE_ROWS = [
+    ['SoC', '`configs/base.toml`, copied to `local/soc.toml`', '`tile`', '`../source/core_tiles/base/tile.toml`'],
+    ['Tile', '`source/core_tiles/base/tile.toml`', '`instruction_cache`, `data_cache`', '`instruction`, `probed_data` components'],
+    ['Core', '`source/core_tiles/base/core.toml`', '`isa`', '`rv32im_zicsr_zifencei`']
+  ];
+  var DEMO_ICACHE_ROW = ['I-cache', '`source/caches/instruction/rtl/icache_uarch_pkg.vh`', '`IIDX_W` (SV parameter)', '4: 16 lines × 8 B = 128 B, direct-mapped'];
+  var DEMO_DCACHE_ROW = ['D-cache', '`source/caches/probed_data/rtl/dcache_uarch_pkg.vh`', '`DIDX_W` (SV parameter)', '3: 8 sets × 2 ways × 16 B = 256 B'];
+  function demoQueueRow(depth) {
+    return ['D-cache', '`source/caches/probed_data/rtl/dcache_uarch_pkg.vh`', '`STORE_QUEUE_SIZE` (SV parameter)',
+      depth === 4 ? '4 stores (the default)' : depth + (depth === 1 ? ' store' : ' stores') + (depth === 0 ? ' (queue removed)' : '') + ', chosen in this view; the default is 4'];
+  }
+  var DEMO_CONFIGS = {
+    core: {
+      what: 'datapath',
+      brief: function () { return 'Shown: Base tile, `rv32im_zicsr_zifencei`, `DIV_BITS = 3`, 128 B I-cache, 256 B two-way D-cache, four-entry store queue.'; },
+      status: 'The retirement timing shown follows Base’s rising-edge retirement change, which is still in development and not yet in Prism’s main branch. On main, Base writes GPRs and CSRs on the falling clock edge; the guides describe that version.',
+      rows: function () {
+        return DEMO_TILE_ROWS.concat([
+          ['Core', '`core.toml` `[microarchitecture]`, passed to `core_uarch_pkg.vh`', '`DIV_BITS`', '`3` quotient bits per divider cycle'],
+          DEMO_ICACHE_ROW, DEMO_DCACHE_ROW, demoQueueRow(4),
+          ['Bench', 'Base tile bench (`tile_tb`)', 'memory latency', 'one cycle after each request']]);
+      },
+      build: ['Create `local/soc.toml` from the supplied SoC manifest; it already selects this tile.', 'The I-cache and D-cache geometry and the store-queue depth are parameters in the cache packages, not manifest keys.'],
+      links: [['#/guides/configuration#1-create-your-soc-manifest', 'Create your SoC manifest'], ['#/guides/configuration#4-change-the-core', 'Change the core'], ['#/guides/configuration#change-caches', 'Change caches']]
+    },
+    caches: {
+      what: 'caches',
+      brief: function (o) { return 'Shown: Base tile, 128 B direct-mapped I-cache, 256 B two-way D-cache, ' + (o.depth ? o.depth + '-entry store queue' : 'no store queue') + (o.depth === 4 ? '' : ' (default four)') + ', 64 KiB RAM.'; },
+      rows: function (o) {
+        return DEMO_TILE_ROWS.concat([DEMO_ICACHE_ROW, DEMO_DCACHE_ROW, demoQueueRow(o.depth),
+          ['Memory map', '`source/soc/memory.toml`', '`ram_*`, `rom_*`, `[mmio]`', '64 KiB RAM at `0x8000_0000` (cacheable), 4 KiB ROM at `0x0`, MMIO from `0x4000_0000`']]);
+      },
+      build: ['Create `local/soc.toml` from the supplied SoC manifest; it already selects this tile and memory map.', 'Cache geometry and `STORE_QUEUE_SIZE` are SystemVerilog parameters in the cache packages. The depth selector here changes only this view; edit the package to build a different depth.'],
+      links: [['#/guides/configuration#1-create-your-soc-manifest', 'Create your SoC manifest'], ['#/guides/configuration#change-caches', 'Change caches'], ['#/guides/memory#store-queue', 'Store queue']]
+    },
+    bus: {
+      what: 'system',
+      brief: function () { return 'Shown: Base tile, `uart0` and `gpio0` behind `irq0`, peripherals on their own 100 MHz clock, 64 KiB RAM, 4 KiB boot ROM.'; },
+      rows: function () {
+        return [
+          ['System', '`configs/system.toml`, copied to `local/system.toml`', '`[clocks]`, `[socs.mcu]`', '`cpu = 25`, `peripheral = 100` MHz; separate clocks set `ASYNC_PERIPHERALS = 1`'],
+          ['SoC', '`configs/base.toml`, copied to `local/soc.toml`', '`[peripherals]`', '`uart0`, `gpio0`, `irq0` (the `spi0` and `timer0` blocks deleted)'],
+          ['SoC', '`local/soc.toml`', '`[components]`', '`system_bus` = blocking, `peripheral_bus` = mmio'],
+          ['Memory map', '`source/soc/memory.toml`', '`[interrupts]`', '`gpio_a = 0` (gpio0), `uart = 2` (uart0)'],
+          ['Memory map', '`source/soc/memory.toml`', '`ram_*`, `rom_*`', '64 KiB RAM at `0x8000_0000`, 4 KiB ROM at `0x0`'],
+          ['irq0', '`interrupt_controller/rtl/irq_controller.sv`', '`PRIORITY_n` reset', '1 for every source; ties go to the lower source'],
+          DEMO_DCACHE_ROW, demoQueueRow(4),
+          ['Core', '`source/core_tiles/base/core.toml`', '`isa`', '`rv32im_zicsr_zifencei` (Base tile)']];
+      },
+      build: ['Create `local/soc.toml` and `local/system.toml` from the supplied manifests, then delete the `[peripherals.spi0]` and `[peripherals.timer0]` blocks from `local/soc.toml`. Keep `uart0` and `irq0`: the ROM loader and external interrupts need them.', 'Interrupt source numbers come from the memory map; device priority is an irq0 register, not a manifest key.'],
+      links: [['#/guides/configuration#1-create-your-soc-manifest', 'Create your SoC manifest'], ['#/guides/configuration#2-create-your-system-manifest', 'Create your system manifest'], ['#/guides/configuration#7-add-or-remove-a-peripheral', 'Add or remove a peripheral']]
+    }
+  };
+  function demoConfigPanel(key, options) {
+    var spec = DEMO_CONFIGS[key], state = Object.assign({ depth: 4 }, options || {});
+    var body = h('div', { class: 'demo-config-body' });
+    var brief = h('span', { class: 'demo-config-brief' });
+    var box = h('details', { class: 'demo-config' },
+      h('summary', null, h('strong', { text: 'One configuration. ' }),
+        'This demo illustrates one Prism configuration. The manifests and parameters inside produce the ' + spec.what + ' shown; other configurations can change the datapath, caches, buses and interrupts. ', brief),
+      body);
+    function render() {
+      brief.replaceChildren.apply(brief, [].concat(inlineCode(spec.brief(state))));
+      body.replaceChildren.apply(body, [
+        spec.status ? h('p', { class: 'demo-config-status', text: spec.status }) : '',
+        table([
+          { label: 'Layer', render: function (r) { return r[0]; } },
+          { label: 'Where it is set', render: function (r) { return inlineCode(r[1]); } },
+          { label: 'Setting', render: function (r) { return inlineCode(r[2]); } },
+          { label: 'Value', render: function (r) { return inlineCode(r[3]); } }
+        ], spec.rows(state), { caption: 'Manifests and parameters behind this demo', stack: true }),
+        h('p', null, inlineCode(spec.build.join(' '))),
+        h('p', { class: 'demo-config-links' }, spec.links.map(function (l, i) { return [i ? ' · ' : '', h('a', { href: l[0], text: l[1] })]; }))]);
+    }
+    render();
+    return { el: box, set: function (changes) { Object.assign(state, changes || {}); render(); } };
+  }
+
   function coreView(key, embedded) {
     var P = CORE_PAGES[key], T = window.PRISM_CORE_TRACES;
     LAYERS.core = key;
@@ -401,6 +485,7 @@
     }
     var holder = h('div', { class: 'core-diagram' });
     var editor = h('div', { class: 'core-editor-slot' });
+    if (key === 'base') page.appendChild(demoConfigPanel('core').el);
     page.appendChild(holder); page.appendChild(editor);
     page.appendChild(h('h2', { text: 'About this view' }));
     page.appendChild(h('ul', { class: 'prose' }, P.notes.map(function (n) { return h('li', null, inlineCode(n)); })));
@@ -555,8 +640,9 @@
   function cacheView() {
     var holder = h('div', { class: 'cache-explorer-slot' });
     var importBox = h('div');
+    var config = demoConfigPanel('caches');
     var page = cachePage('noncoherent', [
-      importBox, holder,
+      config.el, importBox, holder,
       h('p', { class: 'prose' }, 'For what happens below the fabric, see ', h('a', { href: '#/architecture/system-bus', text: 'System bus and interrupts' }), '.')]);
     function mountExplorer(program) {
       if (!window.PrismCacheExplorer || typeof window.PrismCacheExplorer.mount !== 'function') {
@@ -568,6 +654,7 @@
       replace(holder);
       var options = {
         compact: true,
+        onConfig: function (cfg) { if (cfg && typeof cfg.storeQueue === 'number') config.set({ depth: cfg.storeQueue }); },
         onProgram: function (source) { WORKLOAD.program = String(source); },
         // null: the reader reset the explorer or started a new program session.
         onAccess: function (access) {
@@ -623,9 +710,8 @@
   function busView(selectedId) {
     var holder = h('div', { class: 'system-bus-slot' });
     var page = h('div', { class: 'architecture-panel bus-page' },
-      panelHeader('System bus, peripherals and interrupts', 'Click a peripheral to raise its interrupt and watch the level travel the RTL’s wires to the core, then the handler claim and complete it over the bus.'),
-      h('p', { class: 'layer-caption' }, h('strong', { text: 'Example SoC' }),
-        h('span', { class: 'layer-caption-long', text: ': the Base core, RAM, ROM, a timer, the interrupt controller, two GPIO banks, a UART and SPI, with the peripherals on their own clock. The other peripherals have register tables only.' })),
+      panelHeader('System bus, peripherals and interrupts', 'Run a load or store to RAM, ROM or a peripheral and follow it across the bus. Click gpio0 and uart0 to raise both interrupts, then claim, clear and complete them as a handler does.'),
+      demoConfigPanel('bus').el,
       holder, peripheralControls(selectedId));
     if (!window.PrismSystemBus) {
       replace(holder, h('div', { class: 'notice notice-error', role: 'status' }, h('h2', { text: 'The system bus view is missing' }),
@@ -1076,17 +1162,17 @@
     var regions = (memory.regions || []).filter(function (r) { return (r.registers || []).length; });
     var region = regions.filter(function (r) { return r.id === selectedId; })[0] || regions.filter(function (r) { return r.id === 'gpio_a'; })[0] || regions[0];
     var scopes = {
-      uart: 'The interactive model transmits and receives bytes and raises the UART interrupt. Receive injects a byte.',
-      spi: 'The interactive model runs classic SPI frames through the first 28 bytes of registers. QSPI segment registers share the SPI base.',
+      uart: 'In the demo above this is uart0, interrupt source 2. The interactive model transmits and receives bytes and raises the UART interrupt. Receive injects a byte.',
+      spi: 'Classic SPI frames and QSPI segments share the SPI base. The demo above does not install SPI, so its region answers with an error there.',
       pwm: 'Three 16-bit timers with prescalers and one 32-bit timer, with eight fixed channels per timer.',
       watchdog: 'Feed, pretimeout and reset-request controls. reset_request is an output for the system reset logic.',
       can: 'Classical CAN with standard 11-bit identifiers, data and remote frames. Extended frames are discarded without an acknowledgement.',
       adc: 'Reads tagged samples from the FPGA XADC through a platform adapter, which you wire to the board for your platform.',
       dma: 'Captures MMIO commands. The DMA has no bus master, so an accepted command completes with BACKEND_UNAVAILABLE.',
-      gpio_a: 'The interactive model takes register writes and injected inputs, and raises edge interrupts.',
-      gpio_b: 'The interactive model takes register writes and injected inputs, and raises edge interrupts.',
-      timer: 'The interactive model runs MTIME and MTIMECMP and raises the machine-timer interrupt. Time advances only with the model actions.',
-      irq: 'The interactive model handles priority, enable, claim and completion for its four routed sources.'
+      gpio_a: 'In the demo above this is gpio0, interrupt source 0. The interactive model takes register writes and injected inputs, and raises edge interrupts.',
+      gpio_b: 'A second GPIO bank with the same registers as GPIO_A. The demo above does not install it.',
+      timer: 'MTIME and MTIMECMP drive the machine-timer interrupt directly, bypassing irq0. The demo above does not install the timer.',
+      irq: 'The interactive model handles priority, enable, claim and completion for the demo’s two routed sources, gpio0 and uart0.'
     };
     var concept = region && window.PrismPeripheralGuide && window.PrismPeripheralGuide.forRegion(region.id);
     var irq = region && (memory.interrupts || []).filter(function (i) { return i.name === region.id; })[0];

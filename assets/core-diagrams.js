@@ -542,7 +542,9 @@
     });
     slider.addEventListener('input', function () { stop(); go(Number(slider.value)); });
     var speed = h('select', { 'aria-label': 'Speed' },
-      h('option', { value: 1100, text: 'Slow' }), h('option', { value: 650, text: 'Normal', selected: true }), h('option', { value: 300, text: 'Fast' }));
+      // One recorded cycle per step. Medium is the former Slow; Slow gives a
+      // full second and a half more to read the narration.
+      h('option', { value: 2600, text: 'Slow' }), h('option', { value: 1100, text: 'Medium', selected: true }), h('option', { value: 600, text: 'Fast' }));
     speed.addEventListener('change', function () { if (timer) { stop(); playBtn.click(); } });
 
     // Generic per-configuration geometry text: block sub-labels (variantSub)
@@ -911,7 +913,7 @@
       // The pulse runs once per cycle shown, and fits inside a playback step.
       var view = variant.key + ' ' + cycle, moved = view !== drawn;
       drawn = view;
-      diagram.apply(f, showValues, showFlow && moved ? { span: timer ? Math.min(620, Number(speed.value) * 0.8) : 620 } : null);
+      diagram.apply(f, showValues, showFlow && moved ? { span: timer ? Math.min(1400, Number(speed.value) * 0.55) : 620 } : null);
       slider.value = cycle;
       counter.textContent = counterText(trace, cycle);
       setKids(now, M.narrate(trace, cycle, variant).map(function (line, i) {
