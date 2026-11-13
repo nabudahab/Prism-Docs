@@ -241,7 +241,7 @@
       el('h2', { id: 'un-routes-title', text: 'Find your starting point' }),
       el('div', { class: 'un-routes-grid' }, K.paths().map(function (path) {
         return el('section', { class: 'un-route' },
-          el('h3', { text: path.id === 'teams' ? 'Industry partners' : path.title }),
+          el('h3', { text: path.id === 'teams' ? 'Hardware Developers' : path.title }),
           el('p', { text: path.intent }),
           el('ol', null, path.steps.map(function (step) {
             return el('li', null, el('a', { href: step.href, text: step.label }));
