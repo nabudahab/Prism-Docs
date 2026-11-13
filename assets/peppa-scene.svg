@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 260" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M0 213Q76 153 150 204t150-8v64H0z" fill="#8bcc65"/>
+  <g stroke="#8d7544" stroke-width="3" transform="translate(10 24) rotate(-6 50 130)">
+    <path d="M11 102h73v111H11z" fill="#f8e37b"/><path d="M0 102 47 62l47 40z" fill="#e47d66" stroke="#c35e50"/>
+    <path d="M57 73V53h14v31" fill="#e47d66" stroke="#c35e50"/>
+    <g fill="#bce7ef" stroke="#b79851"><path d="M22 121h18v22H22zm34 0h18v22H56zM22 159h18v22H22z"/></g>
+    <path d="M55 212v-40h20v40" fill="#d78868"/><path d="M30 121v22m-8-11h18m25-11v22m-9-11h18" stroke="#b79851"/>
+  </g>
+  <ellipse cx="200" cy="239" rx="79" ry="15" fill="#92674d"/>
+  <path d="m151 226-16-7m113 9 17-8" stroke="#92674d" stroke-width="5"/>
+  <g stroke="#dd78a1" stroke-width="5">
+    <path d="m177 178-3 45m56-44 1 44"/>
+    <path d="M173 224h-19m78 0h19" stroke="#282d30" stroke-width="8"/>
+    <path d="m166 139-23 20-11-6m102-15 23 17 8-7"/>
+    <path d="m138 155-9 5m130-5 12 3" stroke-width="3"/>
+    <path d="M171 132q-16 17-25 62h106q-8-43-28-61" fill="#ec4a4d" stroke="#d63846"/>
+    <path d="M250 178q21-21 26-10t-12 10 4 14" stroke-width="3"/>
+    <path d="M170 66q-12-43 2-47t18 42m25 6q0-43 14-39t0 47" fill="#f5b3ce"/>
+    <path d="M250 101c0 32-23 52-52 48-31-4-45-22-40-45L136 89q-23-18-10-36t38-2l34 18c27-5 52 10 52 32z" fill="#f5b3ce"/>
+    <ellipse cx="138" cy="70" rx="17" ry="24" transform="rotate(-34 138 70)" fill="#f5b3ce"/>
+    <path d="m132 64-1 1m11 8-1 1" stroke-width="6"/>
+    <ellipse cx="174" cy="75" rx="8" ry="10" fill="white" stroke="white"/>
+    <ellipse cx="198" cy="84" rx="8" ry="10" fill="white" stroke="white"/>
+    <path d="M175 74v1m24 7v1" stroke="#282d30" stroke-width="5"/>
+    <circle cx="223" cy="112" r="14" fill="#ee8cb2" stroke="none"/>
+    <path d="M174 116q13 16 29 10" stroke="#d4477d" stroke-width="3"/>
+  </g>
+  <g stroke="#e1f4fa" stroke-width="4"><path d="m116 230-9-9m172 12 10-12"/></g>
+</svg>

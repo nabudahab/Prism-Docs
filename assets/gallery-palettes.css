@@ -1,0 +1,189 @@
+/* Monochrome: pure black and white, as in the Exploded view prototype.
+   Text, links, rules and controls are black on white or white on black;
+   only the four layer colours and the status colours keep a hue, because
+   they carry meaning in the diagrams. */
+:root[data-palette="mono"] {
+  --paper: #FFFFFF; --surface: #FFFFFF; --sunken: #F2F2F2; --chrome: #FFFFFF;
+  --ink: #000000; --muted: #474747; --rule: #CFCFCF; --rule-strong: #6B6B6B;
+  --link: #000000; --focus: #000000; --accent: #000000; --on-accent: #FFFFFF;
+  --ok: #0F6B38; --caution: #7A4A00; --error: #A8173A; --warn-bg: #FFF4D6;
+  --c-cache: #5B2FD6; --c-bus: #006A80; --c-mmio: #8A5200; --c-system: #C0213F;
+  --beam-paper: #000000; --beam-surface: #111111; --beam-ink: #FFFFFF; --beam-muted: #BDBDBD; --beam-rule: #FFFFFF;
+  --beam-system: #FF7A97; --beam-mmio: #FFC247; --beam-bus: #4FD8EA; --beam-cache: #B9A4FF;
+}
+:root[data-palette="mono"][data-theme="dark"] {
+  --paper: #000000; --surface: #000000; --sunken: #121212; --chrome: #000000;
+  --ink: #FFFFFF; --muted: #BDBDBD; --rule: #333333; --rule-strong: #8A8A8A;
+  --link: #FFFFFF; --focus: #FFFFFF; --accent: #FFFFFF; --on-accent: #000000;
+  --ok: #5CE09A; --caution: #FFC94D; --error: #FF8FA3; --warn-bg: #1F1A08;
+  --c-cache: #B9A4FF; --c-bus: #4FD8EA; --c-mmio: #FFC247; --c-system: #FF7A97;
+  --beam-rule: #5C5C5C;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="mono"]:not([data-theme="light"]) {
+    --paper: #000000; --surface: #000000; --sunken: #121212; --chrome: #000000;
+    --ink: #FFFFFF; --muted: #BDBDBD; --rule: #333333; --rule-strong: #8A8A8A;
+    --link: #FFFFFF; --focus: #FFFFFF; --accent: #FFFFFF; --on-accent: #000000;
+    --ok: #5CE09A; --caution: #FFC94D; --error: #FF8FA3; --warn-bg: #1F1A08;
+    --c-cache: #B9A4FF; --c-bus: #4FD8EA; --c-mmio: #FFC247; --c-system: #FF7A97;
+    --beam-rule: #5C5C5C;
+  }
+}
+
+/* Current: the colours of the site as it is published now. Cool grey paper,
+   violet links, ink for the primary button and the current-page mark, and no
+   separate sidebar colour. The beam panel takes the page colours, as the
+   beam does on the current landing page. */
+:root[data-palette="current"] {
+  --paper: #F5F6F8; --surface: #FFFFFF; --sunken: #ECEFF3; --chrome: #F5F6F8;
+  --ink: #18202C; --muted: #566173; --rule: #D9DEE5; --rule-strong: #B7C0CC;
+  --link: #3F35C9; --focus: #6E46E0; --accent: #18202C; --on-accent: #F5F6F8;
+  --ok: #1E7A4C; --caution: #8A5300; --error: #B4233F; --warn-bg: #FFF7E6;
+  --c-cache: #6E46E0; --c-bus: #0E7490; --c-mmio: #A16207; --c-system: #CF3D5C;
+  --beam-paper: #FFFFFF; --beam-surface: #FFFFFF; --beam-ink: #18202C; --beam-muted: #566173; --beam-rule: #D9DEE5;
+  --beam-system: #CF3D5C; --beam-mmio: #A16207; --beam-bus: #0E7490; --beam-cache: #6E46E0;
+}
+:root[data-palette="current"][data-theme="dark"] {
+  --paper: #10151E; --surface: #171E2A; --sunken: #0C1118; --chrome: #10151E;
+  --ink: #E4E9F1; --muted: #9AA6B7; --rule: #2A3444; --rule-strong: #3D4A5E;
+  --link: #A9A2FF; --focus: #A890FF; --accent: #E4E9F1; --on-accent: #10151E;
+  --ok: #5CCB91; --caution: #E8B04A; --error: #FF8299; --warn-bg: #2A2414;
+  --c-cache: #A08BFF; --c-bus: #3EC3D6; --c-mmio: #F0B23C; --c-system: #F27590;
+  --beam-paper: #171E2A; --beam-surface: #171E2A; --beam-ink: #E4E9F1; --beam-muted: #9AA6B7; --beam-rule: #2A3444;
+  --beam-system: #F27590; --beam-mmio: #F0B23C; --beam-bus: #3EC3D6; --beam-cache: #A08BFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="current"]:not([data-theme="light"]) {
+    --paper: #10151E; --surface: #171E2A; --sunken: #0C1118; --chrome: #10151E;
+    --ink: #E4E9F1; --muted: #9AA6B7; --rule: #2A3444; --rule-strong: #3D4A5E;
+    --link: #A9A2FF; --focus: #A890FF; --accent: #E4E9F1; --on-accent: #10151E;
+    --ok: #5CCB91; --caution: #E8B04A; --error: #FF8299; --warn-bg: #2A2414;
+    --c-cache: #A08BFF; --c-bus: #3EC3D6; --c-mmio: #F0B23C; --c-system: #F27590;
+    --beam-paper: #171E2A; --beam-surface: #171E2A; --beam-ink: #E4E9F1; --beam-muted: #9AA6B7; --beam-rule: #2A3444;
+    --beam-system: #F27590; --beam-mmio: #F0B23C; --beam-bus: #3EC3D6; --beam-cache: #A08BFF;
+  }
+}
+
+/* Indigo and slate: blue-grey slate for paper, rules and chrome, with indigo
+   for links, focus and the current-page mark. */
+:root[data-palette="indigo"] {
+  --paper: #F7F8FB; --surface: #FFFFFF; --sunken: #ECEEF4; --chrome: #EEF0F6;
+  --ink: #1C2231; --muted: #515A6F; --rule: #D7DBE5; --rule-strong: #858EA4;
+  --link: #3730A3; --focus: #4F46E5; --accent: #4338CA; --on-accent: #FFFFFF;
+  --ok: #1D6B43; --caution: #855000; --error: #B0213F; --warn-bg: #FBF3E0;
+  --c-cache: #7A3FD0; --c-bus: #0D6D86; --c-mmio: #92570A; --c-system: #C2304E;
+  --beam-paper: #1A2033; --beam-surface: #232A3F; --beam-ink: #F1F3F9; --beam-muted: #B9C0D4; --beam-rule: #4B556E;
+  --beam-system: #FF9FB4; --beam-mmio: #F2C470; --beam-bus: #6FD3E6; --beam-cache: #C3B4FF;
+}
+:root[data-palette="indigo"][data-theme="dark"] {
+  --paper: #121522; --surface: #1A1E2E; --sunken: #0D1019; --chrome: #161A28;
+  --ink: #E6E9F3; --muted: #A4ACC2; --rule: #2C3247; --rule-strong: #5A6482;
+  --link: #A5B4FC; --focus: #A5B4FC; --accent: #A5B4FC; --on-accent: #121522;
+  --ok: #6EDCA0; --caution: #EDBB5E; --error: #FF94A8; --warn-bg: #2C2717;
+  --c-cache: #C3B0FF; --c-bus: #5FD0E2; --c-mmio: #F0B84A; --c-system: #FF8AA3;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="indigo"]:not([data-theme="light"]) {
+    --paper: #121522; --surface: #1A1E2E; --sunken: #0D1019; --chrome: #161A28;
+    --ink: #E6E9F3; --muted: #A4ACC2; --rule: #2C3247; --rule-strong: #5A6482;
+    --link: #A5B4FC; --focus: #A5B4FC; --accent: #A5B4FC; --on-accent: #121522;
+    --ok: #6EDCA0; --caution: #EDBB5E; --error: #FF94A8; --warn-bg: #2C2717;
+    --c-cache: #C3B0FF; --c-bus: #5FD0E2; --c-mmio: #F0B84A; --c-system: #FF8AA3;
+  }
+}
+
+/* Loam: the grounded palette. Oat paper, espresso ink and a moss accent, with
+   peat and lichen after dark. Chroma is kept low everywhere except the four
+   layer colours, which alternate dark and light so they stay apart for
+   colour-blind readers: plum, lake, ochre and madder. */
+
+:root[data-palette="loam"] {
+  --paper: #F5F1E8; --surface: #FDFBF6; --sunken: #E9E3D5; --chrome: #EEE9DC;
+  --ink: #29241C; --muted: #625A4C; --rule: #DCD4C2; --rule-strong: #8A816E;
+  --link: #3C5A22; --focus: #4B6E2A; --accent: #3C5A22; --on-accent: #FDFBF6;
+  --ok: #226B52; --caution: #8A5407; --error: #A6321E; --warn-bg: #F6E7BE;
+  --c-cache: #5E3594; --c-bus: #237086; --c-mmio: #8D5E00; --c-system: #8E1B3D;
+  /* The Architecture beam panel stays dark in both themes. */
+  --beam-paper: #211C15; --beam-surface: #2C261D; --beam-ink: #F7F2E6; --beam-muted: #CDC4B0; --beam-rule: #7C725F;
+  --beam-system: #E69184; --beam-mmio: #F8CA65; --beam-bus: #7FDDDD; --beam-cache: #B49CF7;
+}
+:root[data-palette="loam"][data-theme="dark"] {
+  --paper: #1B1814; --surface: #24201A; --sunken: #14120F; --chrome: #1F1C17;
+  --ink: #EBE5D7; --muted: #B3AA98; --rule: #3A342A; --rule-strong: #70685A;
+  --link: #B5CE8E; --focus: #B5CE8E; --accent: #B5CE8E; --on-accent: #1A2010;
+  --ok: #86D1B4; --caution: #E8BE6A; --error: #F29C88; --warn-bg: #332A12;
+  --c-cache: #B49CF7; --c-bus: #7FDDDD; --c-mmio: #F8CA65; --c-system: #E69184;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="loam"]:not([data-theme="light"]) {
+    --paper: #1B1814; --surface: #24201A; --sunken: #14120F; --chrome: #1F1C17;
+    --ink: #EBE5D7; --muted: #B3AA98; --rule: #3A342A; --rule-strong: #70685A;
+    --link: #B5CE8E; --focus: #B5CE8E; --accent: #B5CE8E; --on-accent: #1A2010;
+    --ok: #86D1B4; --caution: #E8BE6A; --error: #F29C88; --warn-bg: #332A12;
+    --c-cache: #B49CF7; --c-bus: #7FDDDD; --c-mmio: #F8CA65; --c-system: #E69184;
+  }
+}
+
+/* Databook: the wild palette. The signal yellow of a semiconductor data book,
+   printed in black with a red second colour; after dark it inverts to black
+   with yellow marks. Amber cannot be read on yellow, so the peripheral layer
+   darkens to umber in the light theme and returns to orange in the dark one. */
+
+:root[data-palette="databook"] {
+  --paper: #FFD92E; --surface: #FFF8D6; --sunken: #F0C40C; --chrome: #F7CE1A;
+  --ink: #151300; --muted: #4A4100; --rule: #D4B100; --rule-strong: #5C4E00;
+  --link: #9A1B00; --focus: #151300; --accent: #151300; --on-accent: #FFD92E;
+  --ok: #1F5C1F; --caution: #6B3D00; --error: #A8001C; --warn-bg: #FFF3B8;
+  --c-cache: #7108DC; --c-bus: #005E7D; --c-mmio: #4B1A07; --c-system: #A92227;
+  /* The Architecture beam panel stays dark in both themes. */
+  --beam-paper: #12110B; --beam-surface: #1F1D14; --beam-ink: #FFFBE6; --beam-muted: #CFC69E; --beam-rule: #8C7A1F;
+  --beam-system: #FD7EAA; --beam-mmio: #FEB263; --beam-bus: #71E3FE; --beam-cache: #9F9AFC;
+}
+:root[data-palette="databook"][data-theme="dark"] {
+  --paper: #0E0D0A; --surface: #1A1812; --sunken: #060605; --chrome: #14130E;
+  --ink: #FBF3CF; --muted: #BDB48E; --rule: #3A3520; --rule-strong: #8C7A1F;
+  --link: #FFD92E; --focus: #FFD92E; --accent: #FFD92E; --on-accent: #151300;
+  --ok: #8FDB8F; --caution: #FFC46B; --error: #FF8F8F; --warn-bg: #2E2707;
+  --c-cache: #9F9AFC; --c-bus: #71E3FE; --c-mmio: #FEB263; --c-system: #FD7EAA;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="databook"]:not([data-theme="light"]) {
+    --paper: #0E0D0A; --surface: #1A1812; --sunken: #060605; --chrome: #14130E;
+    --ink: #FBF3CF; --muted: #BDB48E; --rule: #3A3520; --rule-strong: #8C7A1F;
+    --link: #FFD92E; --focus: #FFD92E; --accent: #FFD92E; --on-accent: #151300;
+    --ok: #8FDB8F; --caution: #FFC46B; --error: #FF8F8F; --warn-bg: #2E2707;
+    --c-cache: #9F9AFC; --c-bus: #71E3FE; --c-mmio: #FEB263; --c-system: #FD7EAA;
+  }
+}
+
+/* Claret: the editorial palette. Salmon newsprint, wine-black ink and a
+   claret accent, turning to a dark cellar red with blush links. The layer
+   colours alternate dark and light so they stay apart for colour-blind
+   readers: ultramarine, teal, ochre and claret. */
+
+:root[data-palette="claret"] {
+  --paper: #FCEBE0; --surface: #FFF8F3; --sunken: #F2DBCE; --chrome: #F7E3D6;
+  --ink: #2A1A1D; --muted: #6A5154; --rule: #E7CFC3; --rule-strong: #997B7A;
+  --link: #8A1A3F; --focus: #A3264D; --accent: #8A1A3F; --on-accent: #FFF8F3;
+  --ok: #1D6A4B; --caution: #865206; --error: #B23A0E; --warn-bg: #FBE4B4;
+  --c-cache: #3A2FA8; --c-bus: #1E6E86; --c-mmio: #8A5A08; --c-system: #8E1244;
+  /* The Architecture beam panel stays dark in both themes. */
+  --beam-paper: #231419; --beam-surface: #2F1C22; --beam-ink: #FBF1EC; --beam-muted: #D3BDBA; --beam-rule: #86696F;
+  --beam-system: #F08A9C; --beam-mmio: #EBC868; --beam-bus: #58D8E6; --beam-cache: #98A4FA;
+}
+:root[data-palette="claret"][data-theme="dark"] {
+  --paper: #1D1316; --surface: #27191D; --sunken: #160E10; --chrome: #211619;
+  --ink: #F3E7E1; --muted: #C3ADAA; --rule: #402E32; --rule-strong: #7D6368;
+  --link: #F4A9B8; --focus: #F4A9B8; --accent: #F4A9B8; --on-accent: #2B0D18;
+  --ok: #84D3AE; --caution: #EBC56A; --error: #FFA07A; --warn-bg: #35280F;
+  --c-cache: #98A4FA; --c-bus: #58D8E6; --c-mmio: #EBC868; --c-system: #F08A9C;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="claret"]:not([data-theme="light"]) {
+    --paper: #1D1316; --surface: #27191D; --sunken: #160E10; --chrome: #211619;
+    --ink: #F3E7E1; --muted: #C3ADAA; --rule: #402E32; --rule-strong: #7D6368;
+    --link: #F4A9B8; --focus: #F4A9B8; --accent: #F4A9B8; --on-accent: #2B0D18;
+    --ok: #84D3AE; --caution: #EBC56A; --error: #FFA07A; --warn-bg: #35280F;
+    --c-cache: #98A4FA; --c-bus: #58D8E6; --c-mmio: #EBC868; --c-system: #F08A9C;
+  }
+}

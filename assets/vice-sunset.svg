@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <defs>
+    <linearGradient id="sun" x2="0" y2="1"><stop stop-color="#ff9acb"/><stop offset="1" stop-color="#ffbb8d"/></linearGradient>
+    <linearGradient id="six" x2="0" y2="1"><stop stop-color="#f9a7d4"/><stop offset="1" stop-color="#a686eb"/></linearGradient>
+    <mask id="stripes"><path fill="white" d="M0 0h640v400H0z"/><path stroke="black" stroke-width="5" d="M0 180h640M0 199h640M0 220h640M0 243h640M0 268h640"/></mask>
+  </defs>
+  <circle cx="370" cy="185" r="130" fill="url(#sun)" opacity=".22" mask="url(#stripes)"/>
+  <path d="m252 78 54 221h69l54-221h-48l-40 169-39-169zm191 0h48v221h-48z" fill="url(#six)" opacity=".17"/>
+  <g fill="#0e0921" opacity=".65">
+    <path d="M88 400c15-69 38-141 75-210l14 4c-25 75-42 142-47 206z"/>
+    <path d="M173 196c-25-40-70-49-103-26 37-3 69 10 103 26zm0 0c-6-51-47-69-76-61 31 10 55 29 76 61zm0 0c19-45 61-62 98-41-42 2-67 16-98 41zm0 0c39-23 82-20 104 15-39-16-67-18-104-15zm0 0c13-42 5-76-27-89 14 29 22 53 27 89zm0 0c-32-17-63-3-75 25 32-14 47-19 75-25z"/>
+    <path d="M568 400c-2-78-18-151-43-225l-12 4c17 74 25 148 20 221z"/>
+    <path d="M520 180c-34-39-71-35-94-10 37-7 61-3 94 10zm0 0c-39-9-71 7-80 38 29-22 51-31 80-38zm0 0c10-42 46-66 77-51-33 9-55 28-77 51zm0 0c36-26 75-17 91 8-34-8-62-12-91-8zm0 0c-13-36-6-71 20-82-8 28-15 55-20 82z"/>
+  </g>
+</svg>

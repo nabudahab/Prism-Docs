@@ -1,0 +1,767 @@
+/* Theme experiments: shared tokens preserve the documentation's structure. */
+@font-face { font-family: "Prism Pixel"; src: url("fonts/PressStart2P-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Prism Terminal"; src: url("fonts/VT323-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Prism Hand"; src: url("fonts/Caveat[wght].ttf") format("truetype"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Prism Vice"; src: url("fonts/Anton-Regular.ttf") format("truetype"); font-display: swap; }
+
+.theme-gallery-link { display: inline-flex; align-items: center; gap: .45rem; padding: .4rem .7rem; color: var(--ink); text-decoration: none; font: 600 .82rem system-ui, sans-serif; border: 1px solid var(--rule-strong); border-radius: var(--radius-m); }
+.theme-gallery-link:hover { background: var(--sunken); }
+.theme-gallery-link > span { font-size: 1.2rem; line-height: 1; }
+
+/* The complete Unified C site is scaled into each independent frame. */
+:root[data-costume] {
+  --font-sans: "Segoe UI", system-ui, Arial, sans-serif;
+  --font-display: var(--font-sans); --font-serif: var(--font-sans); --font-data: var(--font-sans);
+  --chrome: var(--surface); --accent: var(--link); --on-accent: var(--paper);
+  --beam-paper: var(--sunken); --beam-surface: var(--surface); --beam-ink: var(--ink);
+  --beam-muted: var(--muted); --beam-rule: var(--rule-strong);
+  --beam-system: var(--c-system); --beam-mmio: var(--c-mmio); --beam-bus: var(--c-bus); --beam-cache: var(--c-cache);
+}
+:root[data-costume] :is(h1, h2, h3) { font-family: var(--font-display); }
+:root[data-costume] .hero h1 { overflow-wrap: anywhere; }
+.un-bar > .theme-gallery-link { margin-left: auto; }
+.un-bar > .un-theme { display: inline-flex; width: auto; min-height: 42px; padding: .5rem .75rem; margin-left: 0; border-color: currentColor; font: 650 .82rem/1.2 system-ui, sans-serif; white-space: nowrap; }
+.un-mode { flex: none; margin-left: 0; font: 1.5rem/1 system-ui, sans-serif; }
+.un-mode:hover { border-color: currentColor; }
+.un-bar > .un-trail, .un-bar > .un-trail :is(li, a, [aria-current]) { color: inherit; }
+.theme-preview { position: relative; aspect-ratio: 1360 / 1000; overflow: hidden; background: var(--gallery-preview, #e8eaf0); border-block: 1px solid var(--gallery-rule, #d8dce3); }
+.theme-canvas { background: var(--gallery-preview, #e8eaf0); position: absolute; inset: 0 auto auto 0; display: block; width: 1360px; height: 1000px; border: 0; transform: scale(var(--sample-scale, .3)); transform-origin: top left; pointer-events: none; }
+
+/* 01 — LUNA */
+:root[data-costume="xp"] {
+  --paper: #e9f0fa; --surface: #fff; --sunken: #ece9d8; --ink: #172554; --muted: #455979;
+  --rule: #a0b8dc; --rule-strong: #5077b1; --link: #003ec0; --focus: #d46c00;
+  --c-system: #be3656; --c-mmio: #9a630b; --c-bus: #087b91; --c-cache: #5742b5;
+  --font-sans: Tahoma, "DejaVu Sans", sans-serif; --font-display: "Trebuchet MS", Tahoma, sans-serif;
+  --radius-s: 2px; --radius-m: 3px; --radius-l: 6px; color-scheme: light;
+}
+:root[data-costume="xp"] :is(.topbar, .un-bar) { background: linear-gradient(#3693ff 0%, #0865e6 12%, #0051d5 80%, #003da1); border-bottom: 3px solid #0039a4; color: #fff; box-shadow: inset 0 2px #7cb9ff; }
+:root[data-costume="xp"] :is(.topbar, .un-bar) :is(:is(.brand, .un-brand), :is(.brand-sub, .un-bar-label), :is(.icon-button, .un-icon), .theme-gallery-link) { color: #fff; }
+:root[data-costume="xp"] :is(.brand-name, .un-brand > span) { font-style: italic; text-shadow: 2px 2px #123d8a; font-size: 1.5rem; }
+:root[data-costume="xp"] :is(.sidebar, .un-tree) { background: linear-gradient(#d5e5fa, #9ebdec); border-right: 2px solid #5383c4; }
+:root[data-costume="xp"] :is(.nav-group, .un-group-title) { background: linear-gradient(90deg, #fff, #cfdef5); border-radius: 5px 5px 0 0; color: #124d9c; padding: .25rem .5rem; margin-inline: 0; box-shadow: 0 1px 2px #7092bf; }
+:root[data-costume="xp"] :is(.nav-list, .un-group) a[aria-current] { background: #fff8dc; box-shadow: inset 3px 0 #f1ae28; }
+:root[data-costume="xp"] :is(.button, .arch-part) { border: 1px solid #45689b; box-shadow: inset 1px 1px #fff, inset -1px -2px #c0c9d8; background: linear-gradient(#fff, #e8e7dc); }
+:root[data-costume="xp"] .button.primary { color: #fff; border-color: #245d18; background: linear-gradient(#73c65a, #3b9d30 12%, #258421 80%, #3d9c29); box-shadow: inset 0 2px #a7e793; }
+:root[data-costume="xp"] .hero { position: relative; padding: 3.2rem 1.5rem 1.5rem; background: #fff; border: 3px solid #1260d5; border-radius: 8px 8px 0 0; box-shadow: 3px 4px 0 #9eb1cc; }
+:root[data-costume="xp"] .hero::before { content: "Prism documentation — Microsoft Internet Explorer"; position: absolute; inset: 0 0 auto; padding: .3rem .75rem; background: linear-gradient(#388dff, #0756cd); color: white; font: bold .9rem Tahoma, sans-serif; }
+:root[data-costume="xp"] .hero::after { content: "−  □  ×"; position: absolute; right: .5rem; top: .15rem; color: #fff; background: #176de1; font: bold 1rem Tahoma, sans-serif; }
+:root[data-costume="xp"] .hero h1 { color: #124992; }
+:root[data-costume="xp"] :is(body, .theme-canvas) { background: radial-gradient(ellipse 80% 40% at 30% 110%, #76b436 0 45%, transparent 46%), linear-gradient(150deg, #d8eeff, #84b7e7); }
+
+/* 02 — CRAFTING TABLE */
+:root[data-costume="minecraft"] {
+  --paper: #30251e; --surface: #403b34; --sunken: #25211d; --ink: #faf4e5; --muted: #cbc3b2;
+  --rule: #675b49; --rule-strong: #9e9686; --link: #c0ed8a; --focus: #ffe56b;
+  --c-system: #f294a4; --c-mmio: #f3cd70; --c-bus: #8ad5d5; --c-cache: #b9a4f2;
+  --font-display: "Prism Pixel", monospace; --font-sans: "DejaVu Sans Mono", monospace;
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: dark;
+}
+:root[data-costume="minecraft"] :is(body, .theme-canvas) { background-color: #392a20; background-image: repeating-conic-gradient(#ffffff05 0% 25%, #0000000d 0% 50%); background-size: 22px 22px; }
+:root[data-costume="minecraft"] :is(.topbar, .un-bar) { background: #4e8732; border-top: 7px solid #80b74a; border-bottom: 6px solid #233d19; box-shadow: 0 5px #60452b; }
+:root[data-costume="minecraft"] :is(.brand-name, .un-brand > span) { font-size: 1rem; text-shadow: 3px 3px #23371c; }
+:root[data-costume="minecraft"] :is(.sidebar, .un-tree) { background: #2d302a; border-right: 4px solid #151710; }
+:root[data-costume="minecraft"] :is(.nav-group, .un-group-title) { color: #a6d17b; text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; }
+:root[data-costume="minecraft"] .hero h1 { color: #ecebe7; font-size: clamp(1.5rem, 2.2vw, 2.5rem); line-height: 1.7; letter-spacing: -.045em; text-shadow: 3px 3px #111, 5px 5px #111; max-width: 24ch; }
+:root[data-costume="minecraft"] :is(.button, .arch-part, :is(.nav-list, .un-group) a[aria-current]) { background: #77766e; border: 3px solid #141414; box-shadow: inset 3px 3px #bab9b1, inset -3px -3px #45443e, 3px 3px #191714; color: #fff; text-shadow: 1px 1px #222; }
+:root[data-costume="minecraft"] .button.primary { background: #568138; box-shadow: inset 3px 3px #9ec470, inset -3px -3px #304c20, 3px 3px #191714; }
+:root[data-costume="minecraft"] .hero { position: relative; padding-top: 2rem; }
+:root[data-costume="minecraft"] .hero::before { content: "100% synthesizable!"; display: block; margin-bottom: 1.2rem; color: #ffee44; font: .8rem "Prism Pixel", monospace; transform: rotate(-4deg); transform-origin: left center; text-shadow: 2px 2px #333; }
+:root[data-costume="minecraft"] .task-group h3 { font-size: .85rem; line-height: 1.8; color: #c3e7a0; }
+
+/* 03 — VICE SILICON */
+:root[data-costume="vice"] {
+  --paper: #150e2c; --surface: #25173f; --sunken: #10091d; --ink: #fff1fa; --muted: #d6badc;
+  --rule: #604065; --rule-strong: #b86baa; --link: #74f1e8; --focus: #ffb3dc;
+  --c-system: #ff86c8; --c-mmio: #ffd088; --c-bus: #72eee3; --c-cache: #be9aff;
+  --font-display: "Prism Vice", Impact, sans-serif; --radius-s: 0; --radius-m: 3px; --radius-l: 4px; color-scheme: dark;
+}
+:root[data-costume="vice"] :is(body, .theme-canvas) { background: radial-gradient(ellipse at 88% 0, #cd537a55, transparent 42%), radial-gradient(ellipse at 20% 15%, #67449444, transparent 50%), #150e2c; }
+:root[data-costume="vice"] :is(.topbar, .un-bar) { background: #160d29; border-bottom: 2px solid #fa82bd; box-shadow: 0 2px 18px #f37cba40; }
+:root[data-costume="vice"] :is(.brand-name, .un-brand > span) { font-size: 1.7rem; letter-spacing: .02em; text-transform: uppercase; -webkit-text-stroke: 1px #090614; paint-order: stroke fill; text-shadow: 2px 2px 0 #090614; }
+:root[data-costume="vice"] :is(.sidebar, .un-tree) { background: #140e26; }
+:root[data-costume="vice"] :is(.nav-group, .un-group-title) { color: #fb93c9; text-transform: uppercase; letter-spacing: .14em; }
+:root[data-costume="vice"] :is(.nav-list, .un-group) a[aria-current] { color: #72eee3; background: #2c2444; box-shadow: inset 3px 0 #72eee3; }
+:root[data-costume="vice"] .hero { position: relative; padding: 1.5rem; border: 1px solid #f19ac077; background: linear-gradient(155deg, #4524599c, #17112d 65%); overflow: hidden; }
+:root[data-costume="vice"] .hero::before { content: "VI / VICE SILICON"; display: block; color: #8bf5e7; letter-spacing: .35em; font: 600 .8rem var(--font-sans); margin-bottom: 1.8rem; }
+:root[data-costume="vice"] .hero h1 { color: #ffa9d1; font-weight: 400; text-transform: uppercase; letter-spacing: .005em; text-shadow: 0 0 24px #fc6aad55, 3px 4px #622a69; }
+:root[data-costume="vice"] .hero-art { filter: drop-shadow(0 0 10px #f88bcd50); }
+:root[data-costume="vice"] .button.primary { color: #160d29; background: linear-gradient(110deg, #ffb7d5, #f89e98); border-color: #ffb9d8; box-shadow: 3px 3px #864b91; }
+:root[data-costume="vice"] .task-group h3 { color: #95f5e9; text-transform: uppercase; letter-spacing: .06em; font-weight: 400; border-color: #dc79b7; }
+
+:root[data-costume="vice"] :is(.brand-name, .un-brand > span) { display: inline-block; width: 5.8rem; height: 2.7rem; background: url("vice-wordmark.svg") center / contain no-repeat; overflow: hidden; font-size: 0; -webkit-text-stroke: 0; }
+:root[data-costume="vice"] .hero::before { content: "VICE SILICON"; min-height: 3.5rem; padding: 1rem 0 0 10rem; background: url("vice-wordmark.svg") left center / 8rem auto no-repeat; }
+:root[data-costume="vice"] .hero { background: url("vice-sunset.svg") right top / min(70%, 680px) auto no-repeat, linear-gradient(155deg, #4524599c, #17112d 65%); }
+
+/* 04 — A RECOVERED DOCUMENT, STILL SLIGHTLY CORRUPT */
+:root[data-costume="glitch"] {
+  --paper: #e7e8df; --surface: #fafbf3; --sunken: #d9dcd2; --ink: #171c1a; --muted: #515d54;
+  --rule: #a3afa0; --rule-strong: #485749; --link: #b3202c; --focus: #536e18;
+  --c-system: #bd2331; --c-mmio: #6f7f21; --c-bus: #394b45; --c-cache: #6e7068;
+  --font-sans: "DejaVu Sans Mono", Consolas, monospace; --font-display: var(--font-sans);
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: light;
+}
+:root[data-costume="glitch"] body { background: linear-gradient(90deg, transparent 96%, #1b26180a 96%) 0 0 / 31px 31px, #e7e8df; }
+:root[data-costume="glitch"] .un-bar { background: #151c18; color: #f2f6e9; border-top: 4px solid #c8ff51; border-bottom: 4px solid #d52b36; box-shadow: none; }
+:root[data-costume="glitch"] .un-bar :is(a, button) { color: #f2f6e9; }
+:root[data-costume="glitch"] .un-brand span { font: 900 1.6rem var(--font-sans); letter-spacing: -.1em; text-transform: uppercase; text-shadow: 2px 1px #bf2f3b; }
+:root[data-costume="glitch"] .un-tree { background: #eceee5; border-right: 4px dashed #8a9584; }
+:root[data-costume="glitch"] .un-group-title { color: #a5202a; letter-spacing: -.04em; font-size: .7rem; }
+:root[data-costume="glitch"] .un-group-title::before { content: "// "; }
+:root[data-costume="glitch"] .un-tree a[aria-current] { color: #101a10; background: #c8f46d; box-shadow: inset 7px 0 #171c1a; }
+:root[data-costume="glitch"] .hero { position: relative; padding: 1.5rem; border: 1px solid #38473b; border-left: 8px solid #1d2a20; background: #fafbf3; box-shadow: 5px 6px #b9c2ae; }
+:root[data-costume="glitch"] .hero::before { content: "[! RECOVERY MODE]  DOCUMENT_032 / SIGNAL DAMAGED"; display: block; margin-bottom: 1.6rem; padding: .5rem .7rem; background: #202920; border-left: 12px solid #c8ff51; color: #f2f6e9; font: .7rem/1.5 var(--font-mono); letter-spacing: -.02em; }
+:root[data-costume="glitch"] .hero h1 { position: relative; color: #171c1a; font-weight: 900; font-size: clamp(1.65rem, 2.8vw, 3.1rem); line-height: 1.03; letter-spacing: -.08em; text-transform: uppercase; text-shadow: 2px 0 #c8ff51; }
+:root[data-costume="glitch"] .hero h1::before, :root[data-costume="glitch"] .hero h1::after { content: attr(data-glitch-text); position: absolute; inset: 0; pointer-events: none; }
+:root[data-costume="glitch"] .hero h1::before { color: #c82a35; transform: translate(4px, 1px); clip-path: polygon(0 23%, 100% 23%, 100% 31%, 0 31%); }
+:root[data-costume="glitch"] .hero h1::after { color: #354d11; background: #c8ff51; transform: translate(-3px, 0); clip-path: polygon(0 65%, 100% 65%, 100% 70%, 0 70%); }
+:root[data-costume="glitch"] .hero::after { content: "0110  ▪▪  001?"; position: absolute; right: 0; bottom: .25rem; padding: .1rem .5rem; background: #c8ff51; color: #171c1a; font: .65rem var(--font-mono); transform: translateX(4px); pointer-events: none; }
+:root[data-costume="glitch"] .un-stack { --paper: #131c16; --ink: #f0f6e8; --muted: #bac8b5; --c-system: #c8ff51; --c-mmio: #ff7771; --c-bus: #e2e8df; --c-cache: #a3ba9b; padding: .8rem; color: var(--ink); background: #131c16; border: 1px solid #75846b; clip-path: polygon(0 0, 96% 0, 100% 5%, 100% 100%, 4% 100%, 0 95%); }
+:root[data-costume="glitch"] .un-stack::before { content: "▰ BUFFER RECOVERED / 4 LAYERS"; display: block; color: #c8ff51; font-size: .65rem; padding-bottom: .5rem; border-bottom: 1px dashed #75846b; }
+:root[data-costume="glitch"] .un-layers li { background: #131c16; }
+:root[data-costume="glitch"] .button { background: #f2f5e8; color: #182517; border: 2px solid #46513e; box-shadow: 3px 3px #c6cdbd; }
+:root[data-costume="glitch"] .button.primary { background: #c8ff51; color: #142011; border-color: #46513e; box-shadow: 3px 3px #c62a35; }
+:root[data-costume="glitch"] .un-route { padding: .8rem; border: 1px dashed #6e7b66; border-top: 6px solid #222f22; background: #f3f5e9; }
+:root[data-costume="glitch"] .un-route:nth-child(2) { border-top-color: #ba2530; }
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-costume="glitch"] .hero h1::before { animation: glitch-slice 7s steps(1, end) infinite; }
+  :root[data-costume="glitch"] .hero h1::after { animation: glitch-slice 9s steps(1, end) reverse infinite; }
+}
+@keyframes glitch-slice { 0%, 94%, 100% { translate: 0; } 95%, 98% { translate: 3px 1px; } 96% { translate: -2px 0; } }
+
+/* 05 — PERSONAL INFORMATION PROCESSOR */
+:root[data-costume="pipboy"] {
+  --paper: #08150c; --surface: #0d2112; --sunken: #061008; --ink: #91f8a1; --muted: #69bb78;
+  --rule: #2a713d; --rule-strong: #56ab65; --link: #b5ffc0; --focus: #d4ff8c;
+  --c-system: #b4ffb7; --c-mmio: #83e885; --c-bus: #58d77f; --c-cache: #adf66f;
+  --font-sans: "DejaVu Sans Mono", monospace; --font-display: "Prism Terminal", monospace;
+  --radius-s: 0; --radius-m: 0; --radius-l: 12px; color-scheme: dark;
+}
+:root[data-costume="pipboy"] :is(body, .theme-canvas) { background: radial-gradient(ellipse at 50% 30%, #17432266, transparent 70%), #08150c; text-shadow: 0 0 7px #5cff6126; }
+:root[data-costume="pipboy"] :is(.topbar, .un-bar) { background: #0b1c10; border-bottom: 2px solid #75d98a; }
+:root[data-costume="pipboy"] :is(.brand-name, .un-brand > span) { font-size: 2rem; letter-spacing: .12em; text-transform: uppercase; }
+:root[data-costume="pipboy"] :is(.nav-group, .un-group-title) { text-transform: uppercase; color: #a1ffae; letter-spacing: .12em; border-bottom: 1px solid #2a713d; }
+:root[data-costume="pipboy"] :is(.nav-list, .un-group) a[aria-current] { background: #91f8a1; color: #08150c; outline: none; box-shadow: none; }
+:root[data-costume="pipboy"] .hero { position: relative; padding: 1.5rem; border: 2px solid #56ab65; border-radius: 18px 18px 5px 5px; box-shadow: inset 0 0 35px #071008, 0 0 18px #6bff6b0a; }
+:root[data-costume="pipboy"] .hero::before { content: "STAT   /   DATA   /   SCHEMATICS                       [ PIP-32 ]"; display: block; padding-bottom: .6rem; margin-bottom: 1.5rem; border-bottom: 2px solid #56ab65; white-space: pre-wrap; font: 1.25rem "Prism Terminal", monospace; letter-spacing: .06em; }
+:root[data-costume="pipboy"] .hero h1 { font-size: clamp(2.6rem, 4vw, 4rem); text-transform: uppercase; letter-spacing: .02em; line-height: 1; }
+:root[data-costume="pipboy"] .button.primary { color: #07120a; background: #91f8a1; border-color: #91f8a1; }
+:root[data-costume="pipboy"] .task-group h3 { font-size: 1.6rem; text-transform: uppercase; letter-spacing: .06em; }
+:root[data-costume="pipboy"] body::after { content: ""; position: fixed; inset: 0; z-index: 80; pointer-events: none; background: repeating-linear-gradient(0deg, #00000015 0 1px, transparent 1px 4px); }
+:root[data-costume="pipboy"] body:has(.theme-gallery)::after { display: none; }
+
+/* 06 — DRAWING NO. PR-032 */
+:root[data-costume="blueprint"] {
+  --paper: #123a88; --surface: #153f91; --sunken: #0c2f74; --ink: #f0f6ff; --muted: #bbd3fa;
+  --rule: #537db5; --rule-strong: #a4c5f4; --link: #fff; --focus: #ffe5a3;
+  --c-system: #fff; --c-mmio: #bfdfff; --c-bus: #93d7ff; --c-cache: #dfedff;
+  --font-sans: "DejaVu Sans Mono", monospace; --font-display: "DejaVu Sans Mono", monospace;
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: dark;
+}
+:root[data-costume="blueprint"] :is(body, .theme-canvas) { background-color: #123a88; background-image: linear-gradient(#d3e6ff12 1px, transparent 1px), linear-gradient(90deg, #d3e6ff12 1px, transparent 1px), linear-gradient(#d3e6ff12 1px, transparent 1px), linear-gradient(90deg, #d3e6ff12 1px, transparent 1px); background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px; }
+:root[data-costume="blueprint"] :is(.topbar, .un-bar) { background: #10347d; border-bottom: 2px solid #c2d7f5; }
+:root[data-costume="blueprint"] :is(.brand-name, .un-brand > span) { text-transform: uppercase; letter-spacing: .18em; }
+:root[data-costume="blueprint"] :is(.sidebar, .un-tree) { background: #10347de8; border-right: 1px solid #9cbbea; }
+:root[data-costume="blueprint"] :is(.nav-group, .un-group-title) { color: #e3eeff; text-transform: uppercase; font-size: .75rem; letter-spacing: .12em; }
+:root[data-costume="blueprint"] .hero { border: 1px solid #c2d7f5; outline: 1px solid #7298cd; outline-offset: 7px; padding: 1.5rem; position: relative; }
+:root[data-costume="blueprint"] .hero::before { content: "FIG. 01 / CONFIGURABLE SYSTEM ON CHIP"; display: block; margin-bottom: 1.5rem; font-size: .75rem; letter-spacing: .12em; }
+:root[data-costume="blueprint"] .hero::after { content: "PRISM ENGINEERING   |   SCALE 1:1   |   SHEET 01"; display: block; border-top: 1px solid #92b5e5; margin-top: 1.5rem; padding-top: .5rem; text-align: right; font: .65rem var(--font-mono); letter-spacing: .08em; }
+:root[data-costume="blueprint"] .hero h1 { font-weight: 400; font-size: clamp(1.9rem, 2.6vw, 2.9rem); line-height: 1.2; text-transform: uppercase; letter-spacing: -.04em; }
+:root[data-costume="blueprint"] .button.primary { background: #f0f6ff; color: #123a88; border-color: #f0f6ff; }
+:root[data-costume="blueprint"] .hero-art .prism { fill: transparent; stroke-dasharray: 5 3; }
+:root[data-costume="blueprint"] .task-group h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 400; }
+
+/* 07 — LAB NOTEBOOK */
+:root[data-costume="notebook"] {
+  --paper: #faf6e9; --surface: #fffdf4; --sunken: #eee9d9; --ink: #243e68; --muted: #596b83;
+  --rule: #c6d5df; --rule-strong: #8396aa; --link: #285ba3; --focus: #b13e47;
+  --c-system: #b24455; --c-mmio: #986b1e; --c-bus: #237782; --c-cache: #7060a1;
+  --font-sans: Georgia, "DejaVu Serif", serif; --font-display: "Prism Hand", cursive;
+  --radius-s: 1px; --radius-m: 2px; --radius-l: 3px; color-scheme: light;
+}
+:root[data-costume="notebook"] :is(body, .theme-canvas) { background: repeating-linear-gradient(transparent 0 31px, #829fbd38 31px 32px), #faf6e9; }
+:root[data-costume="notebook"] :is(.topbar, .un-bar) { background: #f6f0df; border-bottom: 1px solid #b5bfcb; }
+:root[data-costume="notebook"] :is(.brand-name, .un-brand > span) { font-size: 2rem; transform: rotate(-5deg); }
+:root[data-costume="notebook"] :is(.sidebar, .un-tree) { background: #f3eddd; border-right: 2px solid #d98b8c; }
+:root[data-costume="notebook"] :is(.nav-group, .un-group-title) { font: 700 1.35rem "Prism Hand", cursive; color: #9e4452; transform: rotate(-2deg); }
+:root[data-costume="notebook"] :is(.nav-list, .un-group) a[aria-current] { background: #f6e89e88; box-shadow: none; outline: none; text-decoration: underline wavy #b34b55; text-underline-offset: .35rem; }
+:root[data-costume="notebook"] .hero { border-left: 2px solid #d98b8c; padding: 0 1.5rem 1.5rem; }
+:root[data-costume="notebook"] .hero::before { content: "idea no. 032 — what if we built our own chip?"; display: block; color: #9f4652; font: 1.4rem "Prism Hand", cursive; margin-bottom: 1rem; transform: rotate(-1deg); }
+:root[data-costume="notebook"] .hero h1 { font-size: clamp(2.6rem, 4vw, 4rem); font-weight: 700; line-height: 1.05; transform: rotate(-1deg); }
+:root[data-costume="notebook"] .button { border: 1px solid #5b6d86; border-radius: 3px 7px 4px 8px; box-shadow: 2px 3px #c7c4b4; font-family: "Prism Hand", cursive; font-size: 1.2rem; }
+:root[data-costume="notebook"] .button.primary { background: #f6e89e; color: #243e68; transform: rotate(-2deg); }
+:root[data-costume="notebook"] .task-group h3 { font-size: 1.75rem; border-bottom: 2px dashed #7890ac; }
+:root[data-costume="notebook"] .hero-art .prism { stroke-dasharray: 3 1; }
+
+/* 08 — MATERIAL RED */
+:root[data-costume="material"] {
+  --paper: #650a1b; --surface: #7c1026; --sunken: #440612; --ink: #ffe7ed; --muted: #f0b8c5;
+  --rule: #a43850; --rule-strong: #d86b83; --link: #ffbdcf; --focus: #ffe0e9;
+  --ok: #ffbdcf; --warn-bg: #580918; --caution: #ffd2df; --error: #ff91ad;
+  --c-system: #ffd0dd; --c-mmio: #ffadc3; --c-bus: #ff8bab; --c-cache: #f76c95;
+  --font-sans: "Segoe UI", system-ui, sans-serif; --font-display: var(--font-sans);
+  --radius-s: 3px; --radius-m: 4px; --radius-l: 5px; color-scheme: dark;
+}
+:root[data-costume="material"] :is(.topbar, .un-bar) { background: #980f2a; border-top: 3px solid #ff6b91; border-bottom: 1px solid #ca385b; }
+:root[data-costume="material"] :is(.brand-mark, .un-brand > svg) { color: #ffb6ce; }
+:root[data-costume="material"] :is(.sidebar, .un-tree) { background: #4b0715; }
+:root[data-costume="material"] :is(.nav-group, .un-group-title) { text-transform: uppercase; letter-spacing: .1em; font-size: .73rem; color: #f0b8c5; }
+:root[data-costume="material"] :is(.nav-list, .un-group) a[aria-current] { background: #9d1634; box-shadow: inset 3px 0 #ff91b3; outline: none; color: #ffe9ef; }
+:root[data-costume="material"] .hero { background: #7f1029; padding: 3.7rem 1.5rem 1.5rem; border: 1px solid #b94362; position: relative; }
+:root[data-costume="material"] .hero::before { content: "◈  overview.sv     ×"; position: absolute; top: 0; left: 0; padding: .65rem 1.1rem; background: #a51b3d; border-top: 2px solid #ff9cbb; border-right: 1px solid #c94b6b; color: #ffe9ef; font: .85rem var(--font-mono); }
+:root[data-costume="material"] .hero h1 { font-weight: 650; letter-spacing: -.04em; }
+:root[data-costume="material"] .button.primary { background: #b8183c; border-color: #ff8caf; color: #fff1f5; }
+:root[data-costume="material"] .task-group h3 { border-color: #ef557f; }
+:root[data-costume="material"] .codeblock-head { border-top: 2px solid #ef557f; }
+
+/* 09 — AMBER SERIAL CONSOLE */
+:root[data-costume="terminal"] {
+  --paper: #170e06; --surface: #211609; --sunken: #100a03; --ink: #ffc16a; --muted: #ca9656;
+  --rule: #785226; --rule-strong: #b67b39; --link: #ffdc9c; --focus: #fff2cb;
+  --c-system: #ffe0a1; --c-mmio: #ffc16a; --c-bus: #e5a34e; --c-cache: #d18d38;
+  --font-sans: "DejaVu Sans Mono", monospace; --font-display: "Prism Terminal", monospace;
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: dark;
+}
+:root[data-costume="terminal"] :is(body, .theme-canvas) { background: radial-gradient(ellipse at 45% 0, #6b3d1029, transparent 70%), #170e06; }
+:root[data-costume="terminal"] :is(.topbar, .un-bar) { background: #211609; border-block: 1px solid #b67b39; }
+:root[data-costume="terminal"] :is(.brand-name, .un-brand > span) { font-size: 1.7rem; text-transform: uppercase; letter-spacing: .12em; }
+:root[data-costume="terminal"] :is(.brand-name, .un-brand > span)::before { content: "> "; }
+:root[data-costume="terminal"] :is(.brand-mark, .un-brand > svg) { display: none; }
+:root[data-costume="terminal"] :is(.sidebar, .un-tree) { border-right: 1px dashed #785226; }
+:root[data-costume="terminal"] :is(.nav-group, .un-group-title) { color: #ffcc87; text-transform: uppercase; font-size: .8rem; }
+:root[data-costume="terminal"] :is(.nav-group, .un-group-title)::before { content: "./"; }
+:root[data-costume="terminal"] :is(.nav-list, .un-group) a[aria-current] { color: #170e06; background: #ffc16a; box-shadow: none; outline: none; }
+:root[data-costume="terminal"] .hero { border: 1px dashed #b67b39; padding: 1.5rem; }
+:root[data-costume="terminal"] .hero::before { content: "PRISM/OS 32-BIT  •  TTY0\A> OPEN DOCUMENTATION_"; white-space: pre-wrap; display: block; font: 1.25rem/1.3 "Prism Terminal", monospace; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px dashed #785226; }
+:root[data-costume="terminal"] .hero h1 { font-size: clamp(2.4rem, 4vw, 3.8rem); font-weight: 400; line-height: 1.05; }
+:root[data-costume="terminal"] .button { border: 1px solid #b67b39; background: transparent; }
+:root[data-costume="terminal"] .button::before { content: "["; }
+:root[data-costume="terminal"] .button::after { content: "]"; }
+:root[data-costume="terminal"] .button.primary { color: #170e06; background: #ffc16a; }
+:root[data-costume="terminal"] .task-group h3 { font-size: 1.6rem; text-transform: uppercase; font-weight: 400; border-bottom: 1px dashed #b67b39; }
+
+/* 10 — FRIENDLY BLUE SCREEN */
+:root[data-costume="bsod"] {
+  --paper: #0078d7; --surface: #087edb; --sunken: #0067bf; --ink: #fff; --muted: #e1f0ff;
+  --rule: #63a9e5; --rule-strong: #b8dbf7; --link: #fff; --focus: #fff;
+  --c-system: #fff; --c-mmio: #d2eaff; --c-bus: #a8d8ff; --c-cache: #ecf7ff;
+  --font-sans: "Segoe UI", system-ui, sans-serif; --font-display: var(--font-sans);
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: dark;
+}
+:root[data-costume="bsod"] .un-bar { background: #0078d7; border-color: #5ba4df; }
+:root[data-costume="bsod"] .un-tree { background: #006cc7; }
+:root[data-costume="bsod"] .un-brand span { font-weight: 400; }
+:root[data-costume="bsod"] .un-group-title { color: #e1f0ff; }
+:root[data-costume="bsod"] .un-tree a[aria-current] { color: #0078d7; background: #fff; box-shadow: none; }
+:root[data-costume="bsod"] .hero { padding-top: .25rem; }
+:root[data-costume="bsod"] .hero::before { content: ":("; display: block; font: 300 6rem/1 "Segoe UI", sans-serif; padding-bottom: 1rem; }
+:root[data-costume="bsod"] .hero h1 { font-weight: 350; font-size: clamp(2rem, 2.8vw, 3.1rem); letter-spacing: -.035em; }
+:root[data-costume="bsod"] .hero::after { content: "100% documentation loaded\AStop code: TOO_MANY_THEMES"; display: block; white-space: pre-wrap; margin-top: 1.5rem; font-size: .85rem; line-height: 1.9; }
+:root[data-costume="bsod"] .button.primary { background: #fff; color: #0078d7; }
+:root[data-costume="bsod"] .un-top { fill: #ffffff12; }
+
+/* 11 — CMOS SETUP */
+:root[data-costume="bios"] {
+  --paper: #c5c5c5; --surface: #d6d6d6; --sunken: #b5b5b5; --ink: #000080; --muted: #242471;
+  --rule: #7777a8; --rule-strong: #000080; --link: #000080; --focus: #900000;
+  --c-system: #000080; --c-mmio: #6a225f; --c-bus: #154f80; --c-cache: #2222a0;
+  --font-sans: "DejaVu Sans Mono", Consolas, monospace; --font-display: "Prism Terminal", monospace;
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: light;
+}
+:root[data-costume="bios"] .un-bar { background: #000080; color: #fff; border-block: 3px double #fff; }
+:root[data-costume="bios"] .un-bar :is(a, button, .un-bar-label) { color: #fff; }
+:root[data-costume="bios"] .un-brand span { font-size: 1.8rem; letter-spacing: .06em; }
+:root[data-costume="bios"] .un-tree { background: #bfbfbf; border-right: 3px double #000080; }
+:root[data-costume="bios"] .un-group-title { color: #000080; letter-spacing: 0; }
+:root[data-costume="bios"] .un-tree a[aria-current] { background: #000080; color: #fff; box-shadow: none; }
+:root[data-costume="bios"] .hero { border: 3px double #000080; padding: 3.2rem 1.25rem 1.25rem; position: relative; }
+:root[data-costume="bios"] .hero::before { content: "CMOS SETUP UTILITY / ADVANCED CHIPSET FEATURES"; position: absolute; top: 0; left: 0; right: 0; padding: .45rem .65rem; background: #000080; color: #fff; font: 1.15rem "Prism Terminal", monospace; }
+:root[data-costume="bios"] .hero h1 { font-size: clamp(2.4rem, 3vw, 3.5rem); font-weight: 400; text-transform: uppercase; letter-spacing: .02em; line-height: 1.02; }
+:root[data-costume="bios"] .button { background: #d6d6d6; border: 2px outset #e6e6e6; box-shadow: 2px 2px #777; }
+:root[data-costume="bios"] .button.primary { background: #000080; color: #fff; border-color: #6262b0; }
+:root[data-costume="bios"] .un-stack { padding: .3rem; border: 1px solid #000080; }
+
+/* 12 — OLD REDDIT'S VERDANA, POST TITLES AND VOTE GUTTERS */
+:root[data-costume="reddit"] {
+  --paper: #fff; --surface: #fafafa; --sunken: #edf3f9; --ink: #222; --muted: #666;
+  --rule: #d5d5d5; --rule-strong: #8ca5ba; --link: #0000ff; --focus: #c44800;
+  --c-system: #c84a19; --c-mmio: #8b6814; --c-bus: #307cab; --c-cache: #6b53ac;
+  --font-sans: Verdana, Arial, Helvetica, sans-serif; --font-display: var(--font-sans);
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: light;
+}
+:root[data-costume="reddit"] body { font: normal 12px/1.5 Verdana, Arial, Helvetica, sans-serif; }
+:root[data-costume="reddit"] .un-bar { background: #cee3f8; border-bottom: 1px solid #5f99cf; }
+:root[data-costume="reddit"] .un-brand span { font: normal 28px Arial, Verdana, sans-serif; letter-spacing: -.06em; }
+:root[data-costume="reddit"] .un-bar :is(.theme-gallery-link, .un-theme), :root[data-costume="reddit"] .un-trail ol { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 11px; }
+:root[data-costume="reddit"] .un-tree { background: #fafafa; border-right: 1px solid #ccc; font-size: 11px; }
+:root[data-costume="reddit"] .un-tree a { padding-block: .3rem; color: #0000ff; }
+:root[data-costume="reddit"] .un-tree a[aria-current] { color: #ff4500; background: #fff; box-shadow: none; font-weight: 700; }
+:root[data-costume="reddit"] .un-group-title { font-size: 10px; color: #777; letter-spacing: 0; }
+:root[data-costume="reddit"] .hero { padding: 2.3rem 1rem 1rem; position: relative; border: 1px solid #ccc; }
+:root[data-costume="reddit"] .hero::before { content: "r/Prism  ›  hot  ·  new  ·  top  ·  hardware"; position: absolute; inset: 0 0 auto; padding: .4rem .75rem; background: #eff7ff; border-bottom: 1px solid #cee3f8; color: #369; font: 700 12px Verdana, Arial, sans-serif; }
+:root[data-costume="reddit"] .hero h1 { color: #0000ff; font: normal 18px/1.3 Verdana, Arial, Helvetica, sans-serif; letter-spacing: 0; max-width: 38ch; }
+:root[data-costume="reddit"] .hero .lede { font: normal 14px/1.5 Verdana, Arial, Helvetica, sans-serif; }
+:root[data-costume="reddit"] .hero .lede + .lede { font-size: 12px; }
+:root[data-costume="reddit"] .button { min-height: 2rem; padding: .3rem .6rem; border: 1px solid #999; font: 12px Verdana, Arial, sans-serif; background: #f5f5f5; color: #222; }
+:root[data-costume="reddit"] .button.primary { background: #f0f6fc; color: #0000ff; border-color: #5f99cf; }
+:root[data-costume="reddit"] .un-layer-title { font: normal 14px/1.4 Verdana, Arial, sans-serif; }
+:root[data-costume="reddit"] .un-layer-sub, :root[data-costume="reddit"] .un-stack figcaption { font-size: 11px; }
+:root[data-costume="reddit"] .un-routes > h2 { font: normal 16px Verdana, Arial, sans-serif; color: #369; margin-bottom: .5rem; }
+:root[data-costume="reddit"] .un-routes-grid { display: block; counter-reset: reddit-row; }
+:root[data-costume="reddit"] .un-route { position: relative; counter-increment: reddit-row; padding: .6rem .5rem .6rem 3.5rem; border: 0; border-bottom: 1px solid #eee; }
+:root[data-costume="reddit"] .un-route::before { content: counter(reddit-row) "  ▲\A    •\A    ▼"; white-space: pre; position: absolute; left: .25rem; top: .6rem; color: #aaa; font: 12px/1.4 Arial, sans-serif; }
+:root[data-costume="reddit"] .un-route h3 { color: #0000ff; font: normal 16px/1.3 Verdana, Arial, sans-serif; margin-bottom: .25rem; }
+:root[data-costume="reddit"] .un-route p { min-height: 0; margin: .2rem 0; font: 12px/1.5 Verdana, Arial, sans-serif; }
+:root[data-costume="reddit"] .un-route ol { display: flex; flex-wrap: wrap; gap: .2rem .8rem; margin-top: .4rem; font-size: 11px; }
+:root[data-costume="reddit"] .un-route a { color: #777; font-weight: 700; }
+
+/* 13 — ROADSIDE MARQUEE, CASINO FELT AND PLAYING-CARD CREAM */
+:root[data-costume="vegas"] {
+  --paper: #073f32; --surface: #0b503e; --sunken: #052d25; --ink: #fff1cf; --muted: #dfd3ad;
+  --rule: #7d9b6b; --rule-strong: #d8b45f; --link: #ffdb87; --focus: #fff4ce;
+  --c-system: #dfaa52; --c-mmio: #e37a70; --c-bus: #96c5a5; --c-cache: #e0d5a9;
+  --font-sans: Georgia, "Charis SIL", serif; --font-display: Georgia, "Charis SIL", serif;
+  --radius-s: 4px; --radius-m: 20px; --radius-l: 4px; color-scheme: light;
+}
+:root[data-costume="vegas"] body { background: radial-gradient(circle, #f6deb312 .7px, transparent 1.2px) 0 0 / 4px 4px, #073f32; }
+:root[data-costume="vegas"] .un-bar { background: #7b2027; border-top: 5px solid #d8b45f; border-bottom: 3px double #f4d99f; color: #fff1cf; box-shadow: 0 2px #3d1115; }
+:root[data-costume="vegas"] .un-bar :is(a, button) { color: #fff1cf; }
+:root[data-costume="vegas"] .un-brand span { font: italic 700 1.9rem Georgia, serif; letter-spacing: -.04em; text-shadow: 1px 1px #401316; }
+:root[data-costume="vegas"] .un-tree { background: #052f27; border-right: 5px double #d2ad5d; }
+:root[data-costume="vegas"] .un-group-title { color: #f2d390; font: 700 .8rem Georgia, serif; letter-spacing: .1em; }
+:root[data-costume="vegas"] .un-group-title::before { content: "♣ "; }
+:root[data-costume="vegas"] .un-tree a { font-size: 1rem; }
+:root[data-costume="vegas"] .un-tree a[aria-current] { background: #fff1cf; color: #8e252d; box-shadow: inset 5px 0 #cda753; }
+:root[data-costume="vegas"] .hero { --paper: #fff3d6; --surface: #fff9e9; --ink: #4a2521; --muted: #725445; --link: #982e32; --rule: #cdb376; --rule-strong: #9d793a; position: relative; color: var(--ink); padding: 1.4rem; background: #fff3d6; border: 7px double #bd974e; border-radius: 4px; box-shadow: 6px 7px #021f19; }
+:root[data-costume="vegas"] .hero::before { content: ""; display: block; aspect-ratio: 1000 / 220; margin-bottom: 1.3rem; background: url("vegas-marquee.svg") center / contain no-repeat; }
+:root[data-costume="vegas"] .hero h1 { color: #922a32; text-transform: none; font-weight: 700; font-style: italic; font-size: clamp(2.1rem, 3.7vw, 4rem); line-height: 1.02; letter-spacing: -.045em; text-shadow: 1px 2px #e8cc8e; transform: none; }
+:root[data-costume="vegas"] .hero .lede { font-size: 1.13rem; line-height: 1.55; }
+:root[data-costume="vegas"] .hero::after { content: "♠  ♥  ♦  ♣  /  THE HOUSE ALWAYS MEETS TIMING"; display: block; margin-top: 1.3rem; padding-top: 1rem; border-top: 3px double #c3a25b; color: #922a32; font: .86rem Georgia, serif; letter-spacing: .07em; text-align: center; }
+:root[data-costume="vegas"] .un-stack { --paper: #0b4938; --ink: #fff1cf; --muted: #d3d8b6; --c-system: #f2cd76; --c-mmio: #fba094; --c-bus: #b8d5b8; --c-cache: #d2c5a0; border: 6px double #d1ac5e; border-radius: 7px; padding: .7rem; color: var(--ink); background: #0b4938; transform: rotate(-1deg); box-shadow: 3px 4px #bfa36b66; }
+:root[data-costume="vegas"] .un-stack::before { content: "♠  THE SILICON HIGH ROLLER  ♠"; display: block; text-align: center; color: #ffe5a5; font: 700 .8rem Georgia, serif; padding-bottom: .6rem; border-bottom: 1px solid #91a175; }
+:root[data-costume="vegas"] .un-top { stroke-width: 2; }
+:root[data-costume="vegas"] .un-layers li { background: #0b4938; }
+:root[data-costume="vegas"] .button { border: 3px double #c5a05b; border-radius: 24px; background: #fff8e8; color: #7b2428; box-shadow: 2px 3px #d7bf87; font: 700 .95rem Georgia, serif; text-transform: none; }
+:root[data-costume="vegas"] .button.primary { background: #992d35; color: #fff3d6; border-color: #ebca83; box-shadow: 2px 3px #b48e47; }
+:root[data-costume="vegas"] .un-route { --ink: #4a2521; --muted: #725445; --link: #982e32; border: 4px double #c4a160; background: #fff3d6; color: var(--ink); padding: 1rem; border-radius: 10px; }
+:root[data-costume="vegas"] .un-route h3::before { content: "♠ "; color: #173e2e; }
+:root[data-costume="vegas"] .un-route:nth-child(2) h3::before { content: "♥ "; color: #a62b34; }
+:root[data-costume="vegas"] .un-route:nth-child(3) h3::before { content: "♦ "; color: #a62b34; }
+
+/* 14 — NAUTICAL NONSENSE */
+:root[data-costume="spongebob"] {
+  --paper: #91e3d9; --surface: #fff2ae; --sunken: #f4df85; --ink: #4e3920; --muted: #775431;
+  --rule: #c2a84b; --rule-strong: #9b7b25; --link: #135b9c; --focus: #b12e34;
+  --c-system: #c03c4b; --c-mmio: #99691a; --c-bus: #117c9a; --c-cache: #8153a3;
+  --font-sans: "Comic Sans MS", "Prism Hand", cursive; --font-display: "Prism Hand", cursive;
+  --radius-s: 4px; --radius-m: 10px; --radius-l: 16px; color-scheme: light;
+}
+:root[data-costume="spongebob"] body { background: #91e3d9 url("sea-flowers.svg") 0 0 / 320px auto; }
+:root[data-costume="spongebob"] .un-bar { background: #fff3b4; border-top: 7px solid #ce404a; border-bottom: 5px solid #216caa; }
+:root[data-costume="spongebob"] .un-brand span { color: #ba322f; font: 700 2.2rem "Prism Hand", cursive; text-shadow: 1px 2px #fff; }
+:root[data-costume="spongebob"] .un-tree { background: #ffefae; border-right: 5px dotted #9e772c; font-size: 1.13rem; }
+:root[data-costume="spongebob"] .un-group-title { color: #155e99; font: 700 1.25rem "Prism Hand", cursive; letter-spacing: .04em; }
+:root[data-costume="spongebob"] .un-tree a[aria-current] { background: #f7d935; color: #8b3c1e; box-shadow: inset 4px 0 #ce404a; }
+:root[data-costume="spongebob"] .hero { padding: 1.4rem; background: radial-gradient(ellipse at 8% 15%, #e9c946 0 9px, transparent 10px), radial-gradient(ellipse at 92% 80%, #e2c34f 0 14px, transparent 15px), radial-gradient(ellipse at 83% 12%, #ebd45b 0 8px, transparent 9px), #fff18b; border: 4px solid #bca632; border-radius: 12px 19px 15px 10px; box-shadow: 6px 6px #247aa477; }
+:root[data-costume="spongebob"] .hero::before { content: "BIKINI BOTTOM / SILICON DEPARTMENT"; display: block; margin-bottom: 1rem; color: #b33031; font: 700 1.3rem "Prism Hand", cursive; letter-spacing: .05em; }
+:root[data-costume="spongebob"] .hero h1 { color: #a44421; font-weight: 700; font-size: clamp(2.6rem, 3.7vw, 4rem); line-height: .98; text-shadow: 2px 2px #fffbc9; }
+:root[data-costume="spongebob"] .hero .lede { font-size: 1.35rem; line-height: 1.25; }
+:root[data-costume="spongebob"] .un-stack { background: #fff7b9; padding: .5rem; border: 2px dashed #cc5a32; border-radius: 13px 7px 18px 6px; }
+:root[data-costume="spongebob"] .un-layers li { background: #fff7b9; }
+:root[data-costume="spongebob"] .button { border: 3px solid #206d9d; border-radius: 11px 5px 13px 7px; background: #fff9cb; font-size: 1.25rem; }
+:root[data-costume="spongebob"] .button.primary { color: #fff7b9; background: #2176ac; border-color: #13578f; }
+:root[data-costume="spongebob"] .un-route { background: #fff6bf; padding: .8rem; border: 2px solid #c6a642; border-radius: 10px; }
+
+/* 15 — A VERY IMPORTANT LITTLE PROCESSOR */
+:root[data-costume="peppa"] {
+  --paper: #c5e9f6; --surface: #fff2f5; --sunken: #f4d5e0; --ink: #653449; --muted: #85576d;
+  --rule: #d5a1b3; --rule-strong: #b46685; --link: #a32e63; --focus: #725090;
+  --c-system: #cb496b; --c-mmio: #97704b; --c-bus: #33868d; --c-cache: #8764ac;
+  --font-sans: "Comic Sans MS", "Prism Hand", cursive; --font-display: "Prism Hand", cursive;
+  --radius-s: 8px; --radius-m: 18px; --radius-l: 24px; color-scheme: light;
+}
+:root[data-costume="peppa"] body { background: #a4ddf2 url("peppa-hills.svg") center bottom / cover fixed; }
+:root[data-costume="peppa"] .un-bar { background: #f7b4cc; border-bottom: 4px solid #dd779c; }
+:root[data-costume="peppa"] .un-brand span { color: #a92e64; font: 700 2.25rem "Prism Hand", cursive; transform: rotate(-4deg); }
+:root[data-costume="peppa"] .un-tree { background: #fff0f4; border-right: 3px solid #d98aac; font-size: 1.15rem; }
+:root[data-costume="peppa"] .un-group-title { color: #ae3b68; font: 700 1.3rem "Prism Hand", cursive; }
+:root[data-costume="peppa"] .un-tree a[aria-current] { color: #fff; background: #dc5e87; box-shadow: none; border-radius: 25px; margin-right: .5rem; }
+:root[data-costume="peppa"] .hero { padding: 1.5rem; background: #eaf6ff; border: 3px solid #e499b7; border-radius: 25px 35px 23px 30px; box-shadow: 6px 7px #f5a7ca; }
+:root[data-costume="peppa"] .hero::before { content: "A very important little processor"; display: block; color: #b33c6f; font: 700 1.55rem "Prism Hand", cursive; margin-bottom: 1rem; }
+:root[data-costume="peppa"] .hero h1 { color: #a94471; font-weight: 700; font-size: clamp(2.5rem, 3.6vw, 3.8rem); line-height: 1; }
+:root[data-costume="peppa"] .hero .lede { font-size: 1.3rem; line-height: 1.3; }
+:root[data-costume="peppa"] .un-stack { background: #fff8fb; border: 3px solid #f0aecb; border-radius: 30px; padding: .7rem; }
+:root[data-costume="peppa"] .un-layers li { background: #fff8fb; }
+:root[data-costume="peppa"] .button { font-size: 1.25rem; border: 2px solid #b66687; border-radius: 26px; background: #fff5f9; }
+:root[data-costume="peppa"] .button.primary { color: #fff; background: #d4547c; border-color: #bd3f69; }
+:root[data-costume="peppa"] .un-route { background: #fff2f7; padding: .8rem; border: 2px solid #e9a8c4; border-radius: 24px; }
+
+/* 16 — THIS BARBIE DESIGNS PROCESSORS */
+:root[data-costume="barbie"] {
+  --paper: #ffe6f3; --surface: #fff7fc; --sunken: #f8d0e7; --ink: #8c145b; --muted: #a0507d;
+  --rule: #ee9bcb; --rule-strong: #d355a2; --link: #c71978; --focus: #8e29a5;
+  --c-system: #dd287f; --c-mmio: #af2896; --c-bus: #287e99; --c-cache: #8a50b2;
+  --font-sans: "Segoe UI", system-ui, sans-serif; --font-display: "Prism Hand", cursive;
+  --radius-s: 5px; --radius-m: 22px; --radius-l: 30px; color-scheme: light;
+}
+:root[data-costume="barbie"] body { background: radial-gradient(ellipse at 80% 0, #fff 0, transparent 65%), #ffe6f3; }
+:root[data-costume="barbie"] .un-bar { background: linear-gradient(#ffdeef, #ffafd8 70%, #ff8bc7); border-bottom: 3px solid #e52991; box-shadow: 0 2px 10px #e5299130; }
+:root[data-costume="barbie"] .un-brand span { font: italic 700 2.7rem "Prism Hand", cursive; color: #cf1b7c; text-shadow: 1px 2px #fff; }
+:root[data-costume="barbie"] .un-tree { background: linear-gradient(90deg, #fff6fb, #ffe2f2); border-right: 2px solid #ee98c7; }
+:root[data-costume="barbie"] .un-group-title { color: #c3237d; letter-spacing: .12em; }
+:root[data-costume="barbie"] .un-tree a[aria-current] { color: #fff; background: #d72588; box-shadow: none; border-radius: 0 25px 25px 0; margin-right: .5rem; }
+:root[data-costume="barbie"] .hero { padding: 1.7rem; background: linear-gradient(135deg, #fff9fd, #ffd9ef); border: 2px solid #e779b8; border-radius: 30px; box-shadow: 6px 7px #edb3d4, inset 0 2px #fff; }
+:root[data-costume="barbie"] .hero::before { content: "DREAMHOUSE / HARDWARE EDITION"; display: block; margin-bottom: 1rem; color: #c7257c; font: 700 .75rem var(--font-sans); letter-spacing: .2em; }
+:root[data-costume="barbie"] .hero h1 { color: #d21d7e; font-style: italic; font-size: clamp(2.6rem, 3.9vw, 4.2rem); line-height: .98; font-weight: 700; text-shadow: 2px 3px #fff; }
+:root[data-costume="barbie"] .un-stack { padding: .8rem; border: 2px dashed #e35aa7; border-radius: 25px; background: #fff6fc; box-shadow: 4px 5px #f2b3d8; }
+:root[data-costume="barbie"] .un-layers li { background: #fff6fc; }
+:root[data-costume="barbie"] .button { border-radius: 30px; border: 2px solid #d34195; color: #b52272; background: #fff7fc; }
+:root[data-costume="barbie"] .button.primary { color: #fff; background: linear-gradient(#ed54a8, #d62185); border-color: #c8217a; box-shadow: inset 0 2px #ff9dd1; }
+:root[data-costume="barbie"] .un-route { background: #fff4fb; border: 1px solid #e8a2cb; border-radius: 24px; padding: 1rem; }
+
+/* 17 — REAL HINGED SPLIT-FLAP DEPARTURE TILES */
+:root[data-costume="airport"] {
+  --paper: #0c0f12; --surface: #171c21; --sunken: #06080a; --ink: #f6e8b8; --muted: #bdb8a7;
+  --rule: #363d42; --rule-strong: #7c8178; --link: #ffdc58; --focus: #fff4b8;
+  --c-system: #ffdc58; --c-mmio: #e6e1ce; --c-bus: #8bd0e4; --c-cache: #c0d68a;
+  --font-sans: "DejaVu Sans Mono", Consolas, monospace; --font-display: var(--font-sans);
+  --radius-s: 0; --radius-m: 2px; --radius-l: 2px; color-scheme: dark;
+}
+:root[data-costume="airport"] .un-bar { background: #090b0d; border-bottom: 5px solid #ffdc58; }
+:root[data-costume="airport"] .un-brand span { color: #ffdc58; font: 1.65rem "Prism Vice", Impact, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+:root[data-costume="airport"] .un-tree { background: #13181c; border-right: 1px solid #474c4b; }
+:root[data-costume="airport"] .un-group-title { color: #ffdc58; font-size: .73rem; letter-spacing: .13em; }
+:root[data-costume="airport"] .un-tree a { border-bottom: 1px solid #22282d; }
+:root[data-costume="airport"] .un-tree a[aria-current] { color: #080b0e; background: #ffdc58; box-shadow: none; }
+:root[data-costume="airport"] .hero { padding: 1.4rem; border: 1px solid #444d53; background: #10151a; box-shadow: 0 5px #06080a; }
+:root[data-costume="airport"] .hero::before { content: none; }
+:root[data-costume="airport"] .hero h1 { color: #ffe16d; font-size: clamp(1.5rem, 2.2vw, 2.4rem); font-weight: 600; line-height: 1.25; text-transform: uppercase; letter-spacing: -.035em; }
+:root[data-costume="airport"] .hero::after { content: "DESTINATION: SILICON / NOW BOARDING"; display: block; margin-top: 1.5rem; padding-top: .7rem; border-top: 1px solid #474c4b; color: #c9dba3; font-size: .72rem; letter-spacing: .08em; }
+:root[data-costume="airport"] .un-stack { padding: .7rem; border: 1px solid #3e4649; background: #070b0e; }
+:root[data-costume="airport"] .un-stack::before { content: "LAYER / CONNECTION"; display: block; color: #ffdc58; font-size: .65rem; letter-spacing: .08em; padding-bottom: .7rem; border-bottom: 1px solid #3e4649; }
+:root[data-costume="airport"] .un-layers li { background: #070b0e; border-bottom: 1px solid #242c30; }
+:root[data-costume="airport"] .un-layer-title { font-size: .86rem; text-transform: uppercase; letter-spacing: .05em; }
+:root[data-costume="airport"] .button.primary { color: #0c0f12; background: #ffdc58; border-color: #ffdc58; }
+:root[data-costume="airport"] .un-route { border-top: 3px solid #ffdc58; }
+.airport-board { margin-bottom: 1.8rem; padding: .9rem; border: 3px solid #313b3f; background: #06090b; box-shadow: inset 0 0 0 1px #626b64, 0 4px #000; font: 600 clamp(.72rem, 1.4vw, 1.4rem)/1.4 "DejaVu Sans Mono", Consolas, monospace; }
+.sf-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding-bottom: .8rem; border-bottom: 1px solid #414a4c; }
+.sf-title { color: #ffdc58; font: 700 clamp(.85rem, 1.7vw, 1.6rem)/1.2 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .1em; }
+.sf-replay { flex: none; border: 1px solid #7b816f; background: transparent; color: #ffdc58; padding: .35rem .5rem; font: .7rem system-ui, sans-serif; cursor: pointer; }
+.sf-replay:disabled { opacity: .5; cursor: default; }
+.sf-labels, .sf-row { display: grid; grid-template-columns: 3.7em 9em 2.2em 9em; justify-content: space-between; align-items: center; gap: .45em; }
+.sf-labels { padding-block: .65rem .35rem; color: #aaa; font-weight: 400; }
+.sf-labels > span { font-size: .6em; text-transform: uppercase; letter-spacing: .08em; }
+.sf-row { padding-block: .32em; color: #f3e5bd; text-decoration: none; border-top: 1px solid #1e272c; }
+.sf-row:hover { background: #171e22; }
+.sf-row > span { display: flex; gap: .08em; }
+.sf-status { color: #ffdc58; }
+.sf-tile { position: relative; display: inline-block; flex: none; width: .65em; height: 1.4em; perspective: 180px; border-radius: 2px; background: #101519; box-shadow: 0 1px 2px #000; }
+.sf-tile::after { content: ""; position: absolute; z-index: 6; top: 50%; left: 0; right: 0; height: 1px; background: #010203; box-shadow: 0 1px #ffffff10; pointer-events: none; }
+.sf-half { position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden; background: #20272b; backface-visibility: hidden; }
+.sf-upper, .sf-leaf-top { top: 0; border-radius: 2px 2px 0 0; }
+.sf-lower, .sf-leaf-bottom { bottom: 0; background: #171e22; border-radius: 0 0 2px 2px; }
+.sf-glyph { position: absolute; left: 0; width: 100%; height: 200%; display: flex; align-items: center; justify-content: center; }
+.sf-upper .sf-glyph, .sf-leaf-top .sf-glyph { top: 0; }
+.sf-lower .sf-glyph, .sf-leaf-bottom .sf-glyph { bottom: 0; }
+.sf-leaf-top, .sf-leaf-bottom { display: none; }
+.sf-leaf-top { z-index: 5; transform-origin: bottom center; }
+.sf-leaf-bottom { z-index: 4; transform-origin: top center; }
+@media (prefers-reduced-motion: no-preference) {
+  .is-flipping .sf-leaf-top { display: block; animation: sf-close 140ms ease-in both; }
+  .is-flipping .sf-leaf-bottom { display: block; animation: sf-open 140ms 140ms ease-out both; }
+}
+@keyframes sf-close { from { transform: rotateX(0); } to { transform: rotateX(-90deg); filter: brightness(.35); } }
+@keyframes sf-open { from { transform: rotateX(90deg); filter: brightness(.35); } to { transform: rotateX(0); filter: brightness(1); } }
+@media (max-width: 680px) {
+  .airport-board { padding: .6rem .4rem; }
+  .sf-labels, .sf-row { grid-template-columns: 9em 9em; }
+  .sf-labels .sf-flight, .sf-labels .sf-gate, .sf-row .sf-flight, .sf-row .sf-gate { display: none; }
+}
+@media print { .sf-replay { display: none; } }
+
+/* 18 — HOUSTON'S APOLLO MISSION OPERATIONS CONTROL ROOM */
+:root[data-costume="apollo"] {
+  --paper: #c9cbbf; --surface: #efefdf; --sunken: #b7beb0; --ink: #252e29; --muted: #52604f;
+  --rule: #a1aa96; --rule-strong: #677560; --link: #334c42; --focus: #964139;
+  --c-system: #375c42; --c-mmio: #806a30; --c-bus: #3e6470; --c-cache: #596b41;
+  --font-sans: "DejaVu Sans Mono", Consolas, monospace; --font-display: "Prism Terminal", monospace;
+  --radius-s: 0; --radius-m: 1px; --radius-l: 2px; color-scheme: light;
+}
+:root[data-costume="apollo"] body { background: repeating-linear-gradient(90deg, #ffffff0a 0 2px, transparent 2px 8px), #c9cbbf; }
+:root[data-costume="apollo"] .un-bar { background: #dadbcb; border-top: 6px solid #404c3f; border-bottom: 3px ridge #949f88; box-shadow: inset 0 2px #faf9df; }
+:root[data-costume="apollo"] .un-brand span { font: 1.9rem "Prism Terminal", monospace; text-transform: uppercase; letter-spacing: .15em; }
+:root[data-costume="apollo"] .un-tree { background: #b9c2b0; border-right: 4px ridge #8f9c83; }
+:root[data-costume="apollo"] .un-tree::before { content: "MISSION CONTROL\A HOUSTON / MOCR-2"; display: block; padding: 1.1rem; background: #344639; color: #eeeeda; font: 1.05rem/1.25 "Prism Terminal", monospace; letter-spacing: .1em; white-space: pre; border-bottom: 4px solid #7d8870; }
+:root[data-costume="apollo"] .un-group-title { color: #334532; font-size: .7rem; letter-spacing: .1em; border-block: 1px solid #88987f; padding-block: .3rem; }
+:root[data-costume="apollo"] .un-tree a[aria-current] { color: #f2f1d3; background: #3c513d; box-shadow: inset 5px 0 #e1d29b; }
+:root[data-costume="apollo"] .hero { color: #28352b; background: #e3e2cc; padding: 1.2rem; border: 9px ridge #adb5a2; box-shadow: 4px 6px #8b9680; }
+:root[data-costume="apollo"] .hero::before { content: "APOLLO / MISSION CONTROL"; display: block; box-sizing: border-box; min-height: clamp(10rem, 27vw, 23rem); margin-bottom: 1.5rem; padding: .5rem .8rem; color: #25382c; background: url("apollo-mission-wall.svg") center bottom / 100% auto no-repeat, #d8d9c9; border: 4px solid #7d8b75; font: 700 clamp(1.05rem, 2vw, 2rem)/1.1 "Prism Terminal", monospace; letter-spacing: .06em; }
+:root[data-costume="apollo"] .hero h1 { color: #2d4435; font-size: clamp(2.1rem, 2.9vw, 3.4rem); line-height: 1.02; font-weight: 400; text-transform: uppercase; letter-spacing: .02em; }
+:root[data-costume="apollo"] .hero .lede { font-size: 1rem; }
+:root[data-costume="apollo"] .hero::after { content: "NASA / HOUSTON — MISSION CONTROL\A FLIGHT: GO  /  CAPCOM: GO  /  FIDO: GO  /  EECOM: GO"; display: block; white-space: pre-wrap; margin-top: 1.5rem; border: 3px ridge #a0aa92; padding: .75rem; background: #b9c3ad; font: .7rem/1.8 var(--font-mono); color: #2b3a28; letter-spacing: .025em; }
+:root[data-costume="apollo"] .hero .button { color: #273e2c; background: #e9ead5; border: 3px outset #abb89e; border-radius: 0; }
+:root[data-costume="apollo"] .hero .button.primary { background: #405d40; color: #f1f0cb; border-color: #869978; }
+:root[data-costume="apollo"] .un-stack { --paper: #0a1812; --ink: #d8ead0; --muted: #a6bf9a; --c-system: #d0e4ba; --c-mmio: #e3d193; --c-bus: #91c4b5; --c-cache: #b6c894; padding: .65rem; color: var(--ink); background: #0a1812; border: 10px ridge #8f9d85; box-shadow: inset 0 0 24px #69a56817; }
+:root[data-costume="apollo"] .un-stack::before { content: "GUIDANCE / TELEMETRY / SYSTEM STATUS"; display: block; padding: .3rem 0 .7rem; border-bottom: 1px solid #617659; color: #d9e8b6; font: .65rem/1.4 var(--font-mono); }
+:root[data-costume="apollo"] .un-layers li { background: #0a1812; }
+:root[data-costume="apollo"] .un-route { background: #dcdfc9; border: 4px ridge #a8b69b; padding: .9rem; }
+
+/* 19 — PRIMARY-COLOR ARCADE CABINET AND PIXEL INVADERS */
+:root[data-costume="arcade"] {
+  --paper: #06152c; --surface: #0c2447; --sunken: #030b18; --ink: #f6f4d5; --muted: #b5c5d7;
+  --rule: #2d5485; --rule-strong: #4c82c1; --link: #ffe34d; --focus: #fff6a3;
+  --c-system: #fff05e; --c-mmio: #ff7064; --c-bus: #75d7f1; --c-cache: #b5e982;
+  --font-sans: "Prism Terminal", "DejaVu Sans Mono", monospace; --font-display: "Prism Pixel", monospace;
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: dark;
+}
+:root[data-costume="arcade"] body { background: url("arcade-invaders.svg") center top / 480px auto repeat, #06152c; font-size: 1.25rem; }
+:root[data-costume="arcade"] .un-bar { background: #174b9a; border-top: 4px solid #f9cd32; border-bottom: 6px solid #db3c31; box-shadow: 0 3px #051024; }
+:root[data-costume="arcade"] .un-bar :is(a, button) { color: #fff4bd; }
+:root[data-costume="arcade"] .un-brand span { font: .95rem "Prism Pixel", monospace; color: #fff05e; text-transform: uppercase; text-shadow: 2px 2px #052a61; }
+:root[data-costume="arcade"] .un-tree { background: #071a37; border-right: 6px ridge #2d6db9; font-size: 1.15rem; }
+:root[data-costume="arcade"] .un-group-title { font: .6rem/1.8 "Prism Pixel", monospace; color: #f8d444; letter-spacing: 0; }
+:root[data-costume="arcade"] .un-tree a[aria-current] { background: #b92e2c; color: #fff6bd; box-shadow: inset 5px 0 #ffe34d; }
+:root[data-costume="arcade"] .hero { padding: 1.2rem; background: #0c2447; border: 8px solid #c8332b; border-inline-color: #2365b3; box-shadow: 0 0 0 3px #f7cc3e, 6px 7px #020b18; }
+:root[data-costume="arcade"] .hero::before { content: "PRISM\A INSERT CLOCK"; white-space: pre-line; display: block; padding: 1rem .5rem; color: #ffe34d; background: #061127; border: 3px solid #3472b7; box-shadow: inset 0 0 0 3px #020914; font: clamp(.9rem, 1.8vw, 1.6rem)/1.8 "Prism Pixel", monospace; text-align: center; margin-bottom: 1.6rem; text-shadow: 3px 3px #b02c25; }
+:root[data-costume="arcade"] .hero h1 { font-size: clamp(1rem, 1.35vw, 1.45rem); line-height: 1.65; font-weight: 400; letter-spacing: -.05em; color: #fff5b5; text-shadow: 2px 2px #193d73; max-width: 29ch; }
+:root[data-costume="arcade"] .hero .lede { font-size: 1.35rem; line-height: 1.25; }
+:root[data-costume="arcade"] .un-stack { --paper: #04120e; --ink: #edf8dc; --muted: #afc2aa; padding: .75rem; background: repeating-linear-gradient(0deg, #ffffff04 0 1px, transparent 1px 4px), #04120e; border: 12px solid #293137; border-radius: 48% / 5%; box-shadow: inset 0 0 25px #62984724, 0 0 0 2px #080f15; }
+:root[data-costume="arcade"] .un-stack::before { content: "1UP 000032 / HI 000128"; display: block; margin-bottom: .7rem; color: #fff05e; font: .52rem/1.8 "Prism Pixel", monospace; text-align: center; }
+:root[data-costume="arcade"] .un-top { stroke-width: 2.8; }
+:root[data-costume="arcade"] .un-side { stroke-width: 2; }
+:root[data-costume="arcade"] .un-layers li { background: #04120e; }
+:root[data-costume="arcade"] .un-layer-title { font-size: 1.2rem; }
+:root[data-costume="arcade"] .hero::after { content: "PLAYER 1  /  CREDIT 01"; display: block; margin-top: 1.4rem; padding: 1.2rem .7rem; color: #fff5b5; border: 3px solid #3264a5; border-bottom: 8px solid #041229; background: radial-gradient(circle at 93% 50%, #de382d 0 8px, #7e1e1c 9px 12px, transparent 13px), #0b1931; font: .56rem/1.7 "Prism Pixel", monospace; }
+:root[data-costume="arcade"] .button { font: .6rem/1.8 "Prism Pixel", monospace; border: 3px outset #6d9ad4; color: #fff4bc; background: #2354a0; box-shadow: 3px 4px #020914; }
+:root[data-costume="arcade"] .button.primary { color: #fff7c8; background: #c8332b; border-color: #ed8a5c; box-shadow: 3px 4px #020914; }
+:root[data-costume="arcade"] .un-route { padding: 1rem; background: #0a2348; border: 3px solid #316baf; border-top-color: #e7be35; }
+:root[data-costume="arcade"] .un-route h3 { font-size: .7rem; line-height: 1.8; color: #ffdf55; }
+
+/* 20 — OLD GOLD AND BLACK. Palette: Purdue's published brand colors. */
+:root[data-costume="black-gold"] {
+  --paper: #f6f3eb; --surface: #fffdfa; --sunken: #e8e1d2; --ink: #171715; --muted: #615b51;
+  --rule: #d5c8af; --rule-strong: #8e6f3e; --link: #6f572c; --focus: #8e6f3e;
+  --c-system: #242424; --c-mmio: #8e6f3e; --c-bus: #555960; --c-cache: #80663f;
+  --font-sans: "Franklin Gothic Medium", "Atkinson Hyperlegible Next", "Segoe UI", sans-serif;
+  --font-display: Impact, "Prism Vice", "Arial Narrow", sans-serif;
+  --radius-s: 0; --radius-m: 1px; --radius-l: 1px; color-scheme: light;
+}
+:root[data-costume="black-gold"] .un-bar { background: #000; border-bottom: 5px solid #cfb991; }
+:root[data-costume="black-gold"] .un-bar :is(a, button, .un-bar-label, .un-trail) { color: #cfb991; }
+:root[data-costume="black-gold"] .un-bar .un-trail { --paper: #000; --ink: #faf8ef; --muted: #cfb991; }
+:root[data-costume="black-gold"] .un-brand span { font-family: var(--font-display); font-size: 1.8rem; text-transform: uppercase; letter-spacing: .025em; transform: skew(-6deg); }
+:root[data-costume="black-gold"] .un-tree { background: #ebe5d8; border-right: 2px solid #cfb991; }
+:root[data-costume="black-gold"] .un-group-title { color: #68532f; font-size: .72rem; letter-spacing: .13em; }
+:root[data-costume="black-gold"] .un-tree a[aria-current] { color: #fff8e8; background: #171715; box-shadow: inset 4px 0 #cfb991; }
+:root[data-costume="black-gold"] .hero {
+  --paper: #111; --surface: #1e1e1b; --sunken: #090909; --ink: #faf8ef; --muted: #d5cdbd;
+  --rule: #71634c; --rule-strong: #cfb991; --link: #e3cda6; --accent: #cfb991; --on-accent: #111;
+  --c-system: #cfb991; --c-mmio: #f1e5ce; --c-bus: #aaa9a5; --c-cache: #b59d70;
+  position: relative; color: var(--ink); background: #111; padding: 1.8rem; border: 1px solid #31312c; border-bottom: 8px solid #cfb991;
+}
+:root[data-costume="black-gold"] .hero::before { content: "BOILER UP // BUILT TO ENGINEER"; display: block; margin-bottom: 1.4rem; color: #cfb991; font: 700 .73rem/1.5 var(--font-sans); letter-spacing: .18em; }
+:root[data-costume="black-gold"] .hero h1 { font-weight: 400; text-transform: uppercase; font-size: clamp(2rem, 3.1vw, 3.3rem); letter-spacing: .01em; line-height: 1.08; }
+:root[data-costume="black-gold"] .hero::after { content: ""; position: absolute; left: 0; bottom: 0; width: 7rem; height: .6rem; background: repeating-linear-gradient(105deg, #cfb991 0 15px, #111 15px 25px); }
+:root[data-costume="black-gold"] .hero .button { color: #f4e5c9; border-color: #cfb991; background: #191916; font-family: var(--font-sans); text-transform: uppercase; font-size: .8rem; letter-spacing: .03em; }
+:root[data-costume="black-gold"] .hero .button.primary { background: #cfb991; color: #111; border-color: #cfb991; }
+:root[data-costume="black-gold"] .un-stack { border-top: 3px solid #cfb991; padding-top: .7rem; }
+:root[data-costume="black-gold"] .un-route { border-top: 4px solid #cfb991; }
+
+/* PURDUE — UNIVERSITY SIGNATURE, BELL TOWER AND BOILERMAKER GOLD */
+:root[data-costume="purdue"] {
+  --paper: #cfb991; --surface: #f8f3e8; --sunken: #bc9e6c; --ink: #121212; --muted: #51432d;
+  --rule: #a78c58; --rule-strong: #6b512a; --link: #332814; --focus: #614921;
+  --c-system: #171717; --c-mmio: #8e6f3e; --c-bus: #555960; --c-cache: #665034;
+  --font-sans: "Franklin Gothic Medium", "Atkinson Hyperlegible Next", "Segoe UI", sans-serif;
+  --font-display: Impact, "Prism Vice", "Arial Narrow", sans-serif;
+  --radius-s: 0; --radius-m: 0; --radius-l: 0; color-scheme: light;
+}
+:root[data-costume="purdue"] body { background: repeating-linear-gradient(135deg, #00000005 0 3px, transparent 3px 15px), #cfb991; }
+:root[data-costume="purdue"] .un-bar { background: #050505; border-top: 4px solid #8e6f3e; border-bottom: 9px solid #cfb991; box-shadow: 0 2px #050505; }
+:root[data-costume="purdue"] .un-bar :is(a, button, .un-trail) { color: #e4d4b4; }
+:root[data-costume="purdue"] .un-brand span { font: 1.9rem var(--font-display); letter-spacing: .04em; text-transform: uppercase; }
+:root[data-costume="purdue"] .un-tree { --chrome: #0b0b0b; --surface: #20201d; --sunken: #1b1b18; --ink: #fff6e4; --muted: #cfb991; --rule: #5e5139; --rule-strong: #a58d61; background: #0b0b0b; color: #fff6e4; border-right: 6px solid #8e6f3e; }
+:root[data-costume="purdue"] .un-tree::before { content: "PURDUE\A BOILERMAKERS"; display: block; padding: 1rem 1.2rem; color: #cfb991; font: 1.55rem/1.15 var(--font-display); letter-spacing: .045em; border-bottom: 1px solid #6c5b3c; white-space: pre; }
+:root[data-costume="purdue"] .un-group-title { color: #cfb991; font-size: .75rem; letter-spacing: .12em; }
+:root[data-costume="purdue"] .un-tree a[aria-current] { color: #060606; background: #cfb991; box-shadow: inset 6px 0 #fff8e7; }
+:root[data-costume="purdue"] .hero { position: relative; padding: 1.3rem; background: #f8f1e1; border: 3px solid #0d0d0d; border-left-width: 10px; box-shadow: 7px 8px #8e6f3e; }
+:root[data-costume="purdue"] .hero::before { content: "BOILER UP!"; display: flex; align-items: end; box-sizing: border-box; min-height: clamp(12rem, 24vw, 22rem); margin-bottom: 1.7rem; padding: 1rem 1.5rem; color: #cfb991; background: url("purdue-signature.svg") 1.5rem 1.5rem / min(64%, 33rem) auto no-repeat, url("purdue-campus.svg") right bottom / auto 100% no-repeat, #070707; border-bottom: 10px solid #cfb991; font: clamp(1.8rem, 3.6vw, 4rem)/1 var(--font-display); letter-spacing: .08em; }
+:root[data-costume="purdue"] .hero h1 { color: #090909; font-size: clamp(2rem, 3.1vw, 3.6rem); line-height: 1.05; font-weight: 400; text-transform: uppercase; letter-spacing: .005em; }
+:root[data-costume="purdue"] .hero::after { content: "HAMMER DOWN. / BUILT BY BOILERMAKERS."; display: block; margin-top: 1.5rem; padding: .75rem; color: #cfb991; background: #111; border-left: 10px solid #8e6f3e; font: .75rem/1.4 var(--font-sans); font-weight: 700; letter-spacing: .1em; }
+:root[data-costume="purdue"] .un-stack { padding: .75rem; background: #efe5ce; border: 3px solid #171717; border-top: 12px solid #171717; }
+:root[data-costume="purdue"] .un-stack::before { content: "PURDUE ENGINEERING / SYSTEM ARCHITECTURE"; display: block; padding-bottom: .6rem; font: 700 .65rem/1.4 var(--font-sans); color: #171717; letter-spacing: .04em; border-bottom: 2px solid #8e6f3e; }
+:root[data-costume="purdue"] .un-layers li { background: #efe5ce; }
+:root[data-costume="purdue"] .button { background: #f8f1e1; color: #101010; border: 2px solid #171717; text-transform: uppercase; font-weight: 700; }
+:root[data-costume="purdue"] .button.primary { color: #cfb991; background: #111; border-color: #111; }
+:root[data-costume="purdue"] .un-route { padding: 1rem; background: #f8f1e1; border: 2px solid #1a1a1a; border-top: 10px solid #1a1a1a; }
+:root[data-costume="purdue"] .un-route h3 { text-transform: uppercase; letter-spacing: .04em; font-weight: 400; }
+@media (max-width: 680px) {
+  :root[data-costume="purdue"] .hero::before { min-height: 13rem; padding: 1rem; background-position: 1rem 1rem, right bottom, center; background-size: 86% auto, auto 75%, auto; }
+}
+
+/* 21 — TIME FOR TELETUBBIES */
+:root[data-costume="teletubbies"] {
+  --paper: #d5effc; --surface: #fcffe9; --sunken: #e1efc0; --ink: #384438; --muted: #586b4d;
+  --rule: #abc47b; --rule-strong: #709342; --link: #67419c; --focus: #be4160;
+  --c-system: #8453ba; --c-mmio: #a47614; --c-bus: #54812a; --c-cache: #c7474e;
+  --font-sans: "Comic Sans MS", "Prism Hand", cursive; --font-display: "Prism Hand", cursive;
+  --radius-s: 10px; --radius-m: 24px; --radius-l: 40px; color-scheme: light;
+}
+:root[data-costume="teletubbies"] body { background: radial-gradient(ellipse 110% 35% at 40% 105%, #a4ce47 0 70%, transparent 71%), linear-gradient(#c1e9fc, #edfafc 65%, #b6df6b); background-attachment: fixed; }
+:root[data-costume="teletubbies"] .un-bar { background: #fffae1; border-top: 5px solid #e7c84e; border-bottom: 4px solid #a4cf63; }
+:root[data-costume="teletubbies"] .un-brand span { color: #7953a5; font: 700 2.15rem "Prism Hand", cursive; }
+:root[data-costume="teletubbies"] .un-tree { background: #f2f6d5; border-right: 4px solid #9bc662; }
+:root[data-costume="teletubbies"] .un-group-title { color: #70509b; font: 700 1.2rem "Prism Hand", cursive; }
+:root[data-costume="teletubbies"] .un-tree a[aria-current] { color: #67419c; background: #e4d7f4; border-radius: 0 30px 30px 0; box-shadow: inset 4px 0 #9d6cc7; }
+:root[data-costume="teletubbies"] .hero { background: #f9ffe3; padding: 1.4rem; border: 3px solid #9dc45c; border-radius: 36px 45px 30px 40px; box-shadow: 6px 7px #95b75c55; }
+:root[data-costume="teletubbies"] .hero h1 { color: #684298; text-shadow: 2px 2px white; }
+:root[data-costume="teletubbies"] .un-stack { padding: .7rem; background: #f4fada; border: 3px solid #a0c674; border-radius: 32px; }
+:root[data-costume="teletubbies"] .un-layers li { background: #f4fada; }
+:root[data-costume="teletubbies"] .button { border: 2px solid #8c6ab4; border-radius: 30px; background: #fffdf0; }
+:root[data-costume="teletubbies"] .button.primary { color: white; background: #7850a8; border-color: #674397; }
+:root[data-costume="teletubbies"] .un-route { background: #faffdf; padding: 1rem; border: 2px solid #a4c375; border-radius: 30px; }
+
+/* 22 — SUPER-DEE-DUPER SILICON */
+:root[data-costume="barney"] {
+  --paper: #f2e6f7; --surface: #fffcf2; --sunken: #e5d3ed; --ink: #4e315e; --muted: #76597f;
+  --rule: #c6a3d3; --rule-strong: #9a69af; --link: #733999; --focus: #7a8827;
+  --c-system: #9350ac; --c-mmio: #938022; --c-bus: #4d883b; --c-cache: #c65c8b;
+  --font-sans: "Comic Sans MS", "Prism Hand", cursive; --font-display: "Prism Hand", cursive;
+  --radius-s: 8px; --radius-m: 20px; --radius-l: 30px; color-scheme: light;
+}
+:root[data-costume="barney"] body { background: radial-gradient(circle, #c5a4d744 2px, transparent 3px) 0 0 / 26px 26px, #f2e6f7; }
+:root[data-costume="barney"] .un-bar { background: #85509d; color: #fff9ed; border-top: 6px solid #abd366; border-bottom: 4px solid #63367a; }
+:root[data-costume="barney"] .un-bar :is(a, button, .un-trail [aria-current]) { color: #fff9ed; }
+:root[data-costume="barney"] .un-brand span { font: 700 2.2rem "Prism Hand", cursive; }
+:root[data-costume="barney"] .un-tree { background: #ebdaf2; border-right: 4px solid #aa81bc; }
+:root[data-costume="barney"] .un-group-title { color: #70418a; font: 700 1.2rem "Prism Hand", cursive; }
+:root[data-costume="barney"] .un-tree a[aria-current] { background: #d6e9ae; color: #4b5d29; border-radius: 0 20px 20px 0; box-shadow: inset 4px 0 #7e9b48; }
+:root[data-costume="barney"] .hero { padding: 1.4rem; background: #fffcf2; border: 4px solid #ab80bb; border-radius: 30px; box-shadow: 6px 7px #c9dca9; }
+:root[data-costume="barney"] .hero h1 { color: #804399; }
+:root[data-costume="barney"] .un-stack { background: #eff6dc; border: 3px solid #a5be78; border-radius: 45% 35% 25% 20% / 25% 20% 15% 15%; padding: 1.3rem .6rem .6rem; }
+:root[data-costume="barney"] .un-layers li { background: #eff6dc; }
+:root[data-costume="barney"] .button { border: 2px solid #a279b3; border-radius: 24px; background: #fffcf5; }
+:root[data-costume="barney"] .button.primary { background: #83489c; border-color: #71388b; color: #fff; }
+:root[data-costume="barney"] .un-route { padding: 1rem; background: #faffeb; border: 2px solid #b3cb8c; border-radius: 24px; }
+
+/* 23 — A REALLY USEFUL PROCESSOR */
+:root[data-costume="thomas"] {
+  --paper: #e2eff5; --surface: #fffdf2; --sunken: #d5e5ec; --ink: #223d50; --muted: #516b78;
+  --rule: #a8bfca; --rule-strong: #648ca3; --link: #17649d; --focus: #bd3c35;
+  --c-system: #1b70b0; --c-mmio: #b75039; --c-bus: #427758; --c-cache: #7f6299;
+  --font-sans: Georgia, "Charis SIL", serif; --font-display: Georgia, "Charis SIL", serif;
+  --radius-s: 3px; --radius-m: 8px; --radius-l: 14px; color-scheme: light;
+}
+:root[data-costume="thomas"] body { background: linear-gradient(#d5eaf4, #f2f8fa 65%, #d4dfc4); background-attachment: fixed; }
+:root[data-costume="thomas"] .un-bar { background: #216ca7; color: #fff8dd; border-top: 4px solid #1b3750; border-bottom: 6px solid #d24b40; box-shadow: 0 2px #f0c56b; }
+:root[data-costume="thomas"] .un-bar :is(a, button, .un-trail [aria-current]) { color: #fff8dd; }
+:root[data-costume="thomas"] .un-brand span { font: 700 1.65rem Georgia, serif; letter-spacing: -.03em; }
+:root[data-costume="thomas"] .un-tree { background: #f3eedf; border-right: 3px solid #426a85; }
+:root[data-costume="thomas"] .un-group-title { color: #385f4a; letter-spacing: .12em; }
+:root[data-costume="thomas"] .un-tree a[aria-current] { background: #2d6b9d; color: #fff8df; box-shadow: inset 4px 0 #edbf57; }
+:root[data-costume="thomas"] .hero { padding: 1.4rem; background: #fffdf2; border: 3px solid #2e6d9f; border-bottom: 8px solid #cc4a41; border-radius: 14px; box-shadow: 5px 5px #7297ab44; }
+:root[data-costume="thomas"] .hero h1 { color: #245c87; }
+:root[data-costume="thomas"] .un-stack { background: #e7f0f4; padding: .7rem; border: 2px solid #7d9eaf; border-radius: 8px; }
+:root[data-costume="thomas"] .un-layers li { background: #e7f0f4; }
+:root[data-costume="thomas"] .button { background: #fffdf2; border: 2px solid #3b6784; border-radius: 5px; }
+:root[data-costume="thomas"] .button.primary { background: #27699c; color: #fff8df; border-color: #245981; }
+:root[data-costume="thomas"] .un-route { background: #fffdf2; padding: 1rem; border: 3px double #547567; border-radius: 5px; }
+
+/* Character placards are original vector illustrations, kept out of the
+   processor figure so its four-layer animation and links stay intact. */
+:root:is([data-costume="spongebob"], [data-costume="peppa"], [data-costume="barbie"], [data-costume="teletubbies"], [data-costume="barney"], [data-costume="thomas"]) .hero::before {
+  position: static; display: flex; align-items: center; box-sizing: border-box; min-height: 11rem; margin: 0 0 1.5rem;
+  padding: 1rem 43% 1rem 1.1rem; border: 3px solid var(--cartoon-edge); border-radius: 18px;
+  background: var(--cartoon-art) right center / auto 100% no-repeat, var(--cartoon-color);
+  color: var(--cartoon-ink); font: 700 clamp(2.1rem, 4.6vw, 4.5rem)/.9 "Prism Hand", cursive;
+  letter-spacing: -.02em; white-space: pre-line; text-shadow: 2px 2px #fff9; transform: rotate(-1deg);
+}
+:root[data-costume="spongebob"] { --cartoon-art: url("spongebob-scene.svg"); --cartoon-color: #9be5df; --cartoon-ink: #8c4522; --cartoon-edge: #c59d24; }
+:root[data-costume="spongebob"] .hero::before { content: "SpongeBob\A SquarePants"; }
+:root[data-costume="spongebob"] .hero { border-bottom: 16px solid #95623a; }
+:root[data-costume="spongebob"] .un-tree { border-bottom: 12px solid #95623a; }
+:root[data-costume="peppa"] { --cartoon-art: url("peppa-scene.svg"); --cartoon-color: #d9f0fc; --cartoon-ink: #b4356b; --cartoon-edge: #e49ab6; }
+:root[data-costume="peppa"] .hero::before { content: "Peppa\A Pig"; font-size: clamp(2.8rem, 5vw, 5rem); }
+:root[data-costume="peppa"] .hero { border-bottom: 9px solid #e95057; }
+:root[data-costume="barbie"] { --cartoon-art: url("barbie-scene.svg"); --cartoon-color: #ffd5ed; --cartoon-ink: #cb157b; --cartoon-edge: #ea51a5; }
+:root[data-costume="barbie"] .hero::before { content: "Barbie"; font-style: italic; font-size: clamp(3.5rem, 7.5vw, 7rem); border-radius: 45% 15% 35% 10% / 20%; text-shadow: 3px 3px #fff; }
+:root[data-costume="barbie"] .hero { border: 6px solid #f071b4; box-shadow: 0 0 0 4px #fff6fb, 8px 9px #d63c9466; background: repeating-linear-gradient(90deg, #fff9fd 0 18px, #ffeaf5 18px 36px); }
+:root[data-costume="barbie"] .un-stack { background: #fff9fddd; border: 3px solid #e459a5; box-shadow: inset 0 0 0 5px white, 4px 5px #f2b3d8; }
+:root[data-costume="teletubbies"] { --cartoon-art: url("teletubbies-scene.svg"); --cartoon-color: #d7f0ff; --cartoon-ink: #7951a1; --cartoon-edge: #a5cb67; }
+:root[data-costume="teletubbies"] .hero::before { content: "Teletubbies\A Eh-oh!"; padding-right: 55%; font-size: clamp(2rem, 3.6vw, 3.8rem); }
+:root[data-costume="barney"] { --cartoon-art: url("barney-scene.svg"); --cartoon-color: #f1e3f7; --cartoon-ink: #82439c; --cartoon-edge: #b38cc6; }
+:root[data-costume="barney"] .hero::before { content: "Barney\A & friends"; font-size: clamp(2.8rem, 5vw, 5rem); }
+:root[data-costume="thomas"] { --cartoon-art: url("thomas-scene.svg"); --cartoon-color: #d4e9f6; --cartoon-ink: #235d88; --cartoon-edge: #4e8ab5; }
+:root[data-costume="thomas"] .hero::before { content: "Thomas\A & friends"; font-family: Georgia, serif; font-size: clamp(2rem, 3.9vw, 3.8rem); border-radius: 35px; }
+
+/* Gallery colors and type follow the active design, just like any other page. */
+.theme-gallery {
+  --gallery-paper: var(--paper); --gallery-card: var(--surface); --gallery-ink: var(--ink);
+  --gallery-muted: var(--muted); --gallery-subtle: var(--muted); --gallery-rule: var(--rule);
+  --gallery-accent: var(--link); --gallery-control: var(--surface); --gallery-hover: var(--sunken);
+  --gallery-primary: var(--accent); --gallery-on-primary: var(--on-accent);
+  --gallery-selected: var(--accent); --gallery-on-selected: var(--on-accent); --gallery-preview: var(--sunken);
+  max-width: 92rem; font: 1rem/1.6 var(--font-sans); color: var(--gallery-ink);
+  padding: clamp(1rem, 2vw, 2rem); background: var(--gallery-paper); border-radius: 12px;
+  text-shadow: none;
+}
+.gallery-kicker { margin: 0 0 .8rem; color: var(--gallery-accent); font: 650 .72rem/1.4 var(--font-sans); letter-spacing: .16em; }
+.gallery-title { font: 750 clamp(2rem, 3.8vw, 3.3rem)/1.08 var(--font-sans); letter-spacing: -.045em; max-width: 17ch; color: var(--gallery-ink); text-transform: none; text-shadow: none; }
+.gallery-lede { max-width: 43rem; color: var(--gallery-muted); margin-top: 1rem; font-size: 1rem; }
+.gallery-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem; padding-block: 1.3rem; margin: 1rem 0 .2rem; border-block: 1px solid var(--gallery-rule); }
+.gallery-current { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; font-size: .85rem; }
+.gallery-status-dot { width: 7px; height: 7px; background: var(--gallery-accent); border-radius: 50%; margin-right: .3rem; }
+.gallery-button { min-height: 2.5rem; padding: .45rem .85rem; border: 1px solid var(--gallery-rule); border-radius: 5px; background: var(--gallery-control); color: var(--gallery-ink); font: 600 .8rem var(--font-sans); cursor: pointer; }
+.gallery-button:hover { border-color: var(--gallery-accent); color: var(--gallery-accent); background: var(--gallery-hover); }
+.gallery-button:focus-visible, .gallery-explore:focus-visible { outline: 3px solid var(--gallery-accent); outline-offset: 3px; }
+.gallery-button-primary { color: var(--gallery-on-primary); background: var(--gallery-primary); border-color: var(--gallery-primary); min-width: 6.3rem; }
+.gallery-button-primary:hover { color: var(--gallery-on-selected); background: var(--gallery-selected); }
+.gallery-button[aria-pressed="true"] { background: var(--gallery-selected); color: var(--gallery-on-selected); border-color: var(--gallery-accent); }
+.theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+.theme-card { min-width: 0; background: var(--gallery-card); border: 1px solid var(--gallery-rule); border-radius: 8px; overflow: hidden; box-shadow: 0 3px 12px #00000010; }
+.theme-card.is-applied { border-color: var(--gallery-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gallery-accent) 25%, transparent); }
+.theme-card-head { display: flex; align-items: center; gap: .7rem; padding: .65rem 1rem; min-height: 2.7rem; font: .68rem/1.3 var(--font-sans); }
+.theme-number { color: var(--gallery-accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.theme-category { color: var(--gallery-muted); letter-spacing: .025em; }
+.theme-card-body { padding: 1.1rem 1.15rem; }
+.theme-card-body h2 { margin: 0; color: var(--gallery-ink); font: 700 1.2rem/1.25 var(--font-sans); letter-spacing: -.025em; text-transform: none; }
+.theme-note { margin: .5rem 0 0; color: var(--gallery-muted); font: .84rem/1.6 var(--font-sans); min-height: 4.1em; }
+.theme-tags { color: var(--gallery-subtle); font: .68rem/1.5 var(--font-sans); margin: .8rem 0 0; }
+.theme-card-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; border-top: 1px solid var(--gallery-rule); margin-top: 1rem; padding-top: 1rem; }
+.gallery-explore { color: var(--gallery-muted); font: 600 .78rem var(--font-sans); text-decoration: none; }
+.gallery-explore:hover { color: var(--gallery-accent); text-decoration: underline; }
+.gallery-footnote { color: var(--gallery-subtle); margin-top: 2rem; max-width: 44rem; font: .8rem/1.7 var(--font-sans); }
+@media (min-width: 1900px) { .theme-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1150px) and (min-width: 960px), (max-width: 680px) { .theme-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 680px) {
+  .theme-gallery { padding: 0; background: var(--gallery-paper); }
+  :root[data-costume] .theme-gallery { background: var(--gallery-paper); padding: 1rem; }
+  .gallery-toolbar { align-items: flex-start; }
+  .theme-note { min-height: 0; }
+  .theme-card-body { padding: 1rem; }
+  .theme-gallery-link { padding: .35rem .5rem; font-size: .72rem; }
+  :is(.topbar, .un-bar) { padding-inline: .5rem; }
+  :root[data-costume="minecraft"] :is(.brand-name, .un-brand > span) { font-size: .75rem; }
+  :root[data-costume] .hero { padding-inline: 1rem; }
+  :root[data-costume="xp"] .hero::before { font-size: .64rem; padding-right: 3rem; }
+  .un-bar > .un-theme { padding-inline: .55rem; font-size: .76rem; }
+  :root[data-costume="terminal"] .un-brand > span { font-size: 1.2rem; letter-spacing: .07em; }
+  :root:is([data-costume="spongebob"], [data-costume="peppa"], [data-costume="barbie"], [data-costume="teletubbies"], [data-costume="barney"], [data-costume="thomas"]) .hero::before {
+    min-height: 15rem; align-items: start; justify-content: center; padding: .6rem .4rem 10rem; background-position: center bottom; background-size: auto 10rem;
+    font-size: 2.6rem; line-height: 1; white-space: normal; text-align: center; border-radius: 16px;
+  }
+  :root[data-costume="barbie"] .hero::before { font-size: 3.5rem; }
+  :root[data-costume="teletubbies"] .hero::before { font-size: 2.2rem; }
+}
+@media (max-width: 400px) {
+  .un-bar { gap: .35rem; }
+  .un-mode { width: 36px; }
+  .un-brand > svg { display: none; }
+  .theme-gallery-link { min-width: 36px; min-height: 42px; justify-content: center; font-size: 0; gap: 0; }
+  :root:is([data-costume="pipboy"], [data-costume="bios"], [data-costume="apollo"], [data-costume="blueprint"]) .un-brand > span { font-size: 1.3rem; letter-spacing: .06em; }
+}
+@media print {
+  .theme-gallery-link, .un-mode, .gallery-toolbar, .theme-card-actions { display: none; }
+  :root[data-costume="pipboy"] body::after { display: none; }
+  .theme-card { break-inside: avoid; }
+}

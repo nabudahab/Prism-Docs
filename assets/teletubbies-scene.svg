@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <g id="tubby">
+      <path d="m-22 111-6 17 5 5m45-22 6 17-5 5" fill="var(--fur)" stroke="var(--edge)" stroke-width="12"/>
+      <path d="M-22 125q-7 20-4 55h52q4-32-4-55z" fill="var(--fur)" stroke="var(--edge)" stroke-width="3"/>
+      <path d="m-15 178-2 22m32-22 2 22" stroke="var(--fur)" stroke-width="17"/>
+      <path d="M-24 208h16m16 0h16" stroke="var(--fur)" stroke-width="15"/>
+      <rect x="-17" y="143" width="34" height="27" rx="5" fill="#a7aeb1" stroke="var(--edge)" stroke-width="3"/>
+      <path d="m-12 147 22 18" stroke="#d2d9da" stroke-width="3"/>
+      <ellipse cx="-30" cy="95" rx="12" ry="9" fill="var(--fur)" stroke="var(--edge)" stroke-width="3"/>
+      <ellipse cx="30" cy="95" rx="12" ry="9" fill="var(--fur)" stroke="var(--edge)" stroke-width="3"/>
+      <ellipse cy="99" rx="29" ry="33" fill="var(--fur)" stroke="var(--edge)" stroke-width="3"/>
+      <ellipse cy="104" rx="21" ry="24" fill="#f1d6bf" stroke="var(--edge)" stroke-width="2"/>
+      <path d="M-9 99v1m18-1v1" stroke="#3d4145" stroke-width="4"/>
+      <path d="M-9 114q9 10 18 0" fill="white" stroke="#986c62" stroke-width="2"/>
+    </g>
+  </defs>
+  <circle cx="356" cy="45" r="28" fill="#ffe260"/>
+  <g stroke="#f8ce3b" stroke-width="5"><path d="M356 6V0m0 90v-8m39-37h12m-102 0h12m10-29-8-8m66 8 8-8m-8 66 8 8"/></g>
+  <path d="M346 40v2m19-2v2m-22 9q13 13 25 0" stroke="#bc833e" stroke-width="3"/>
+  <path d="M0 207q95-49 200 0t220-8v61H0z" fill="#96cf41"/>
+  <g style="--fur:#9870c9;--edge:#694898" transform="translate(62 0)">
+    <path d="m0 67-16-26H16z" fill="#9870c9" stroke="#694898" stroke-width="7"/>
+    <use href="#tubby"/>
+  </g>
+  <g style="--fur:#99cd44;--edge:#619433" transform="translate(157 17) scale(.91)">
+    <path d="M0 68V33q1-16 20-14" stroke="#619433" stroke-width="8"/>
+    <use href="#tubby"/>
+  </g>
+  <g style="--fur:#f6d54d;--edge:#c79b2c" transform="translate(248 34) scale(.83)">
+    <path d="M0 68V42q-30 1-19-14 17-20 31-3 10 11-7 17" stroke="#c79b2c" stroke-width="8"/>
+    <use href="#tubby"/>
+  </g>
+  <g style="--fur:#e85054;--edge:#b52b45" transform="translate(332 49) scale(.76)">
+    <path d="M0 68V42" stroke="#b52b45" stroke-width="8"/><circle cy="26" r="15" stroke="#b52b45" stroke-width="8"/>
+    <use href="#tubby"/>
+  </g>
+  <g fill="white"><circle cx="30" cy="243" r="5"/><circle cx="177" cy="231" r="5"/><circle cx="368" cy="232" r="5"/></g>
+  <g fill="#f7cd38"><circle cx="30" cy="243" r="2"/><circle cx="177" cy="231" r="2"/><circle cx="368" cy="232" r="2"/></g>
+</svg>

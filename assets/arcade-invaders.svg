@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" shape-rendering="crispEdges">
+  <defs>
+    <path id="invader" d="M8 0h4v4h4V0h4v4h4v4h4v16h-4v-8h-4v4H8v-4H4v8H0V8h4V4h4zM8 8v4h4V8zm8 0v4h4V8zM8 24h4v4H8zm8 0h4v4h-4z" fill-rule="evenodd"/>
+  </defs>
+  <g fill="#244b7980"><use href="#invader" x="30" y="44"/><use href="#invader" x="282" y="236"/></g>
+  <g fill="#a885253b"><use href="#invader" x="366" y="91"/><use href="#invader" x="146" y="305"/></g>
+  <g fill="#e16c4a35"><use href="#invader" x="151" y="141"/></g>
+  <g fill="#aecae077"><path d="M95 18h2v2h-2zm151 76h2v2h-2zM26 228h2v2h-2zm342 89h2v2h-2zm74-134h2v2h-2zM209 261h2v2h-2zm1-208h2v2h-2z"/></g>
+</svg>

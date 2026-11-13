@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 320" fill="none">
+  <defs><pattern id="grid" width="36" height="26" patternUnits="userSpaceOnUse"><path d="M36 0H0v26" stroke="#90a69c" stroke-width=".7"/></pattern></defs>
+  <path fill="#b9bcae" d="M0 0h1100v320H0z"/>
+  <path fill="#d8d9c9" d="M0 0h1100v221H0z"/>
+  <g fill="#ecebda" stroke="#777f70" stroke-width="5"><rect x="24" y="30" width="215" height="171"/><rect x="258" y="30" width="548" height="171"/><rect x="826" y="30" width="250" height="171"/></g>
+  <g fill="#1c2928"><path d="M34 62h195v129H34zM268 62h528v129H268zM836 62h230v129H836z"/></g>
+  <g fill="#263532" font-family="monospace" font-size="15" font-weight="bold" text-anchor="middle"><text x="131" y="51">LUNAR DESCENT</text><text x="532" y="51">HOUSTON / MISSION OPERATIONS CONTROL</text><text x="951" y="51">MISSION ELAPSED TIME</text></g>
+  <path fill="url(#grid)" d="M276 69h512v115H276z"/>
+  <g stroke="#dce8d9" stroke-width="1.5"><path d="m286 108 34-17 36-1 21-14 25 6 18-7 26 12 6 21-19 12-16-4-19 16-19-6-8 12-19-15-19-1-10-12zM374 136l21 2 13 22-10 22-15-19zM480 102l33-17 35 8 19-6 29 13 23-8 28 8 16-13 25 10-10 22-18 8-21-7-12 12-22-4-17 14-20-12-10 13-22-7-6 30-20 11-16-32-16-2zM670 149l35-4 21 19-26 9-24-9z"/></g>
+  <ellipse cx="538" cy="127" rx="182" ry="45" transform="rotate(-8 538 127)" stroke="#cdb66c" stroke-width="2" stroke-dasharray="6 5"/>
+  <circle cx="652" cy="84" r="5" fill="#f3d788"/><path d="m652 84 29-18" stroke="#f3d788"/>
+  <g fill="#e9f0d8" font-family="monospace"><text x="847" y="100" font-size="29">102:45:40</text><text x="850" y="129" font-size="15">FLIGHT   GO</text><text x="850" y="152" font-size="15">GUIDANCE GO</text><text x="850" y="175" font-size="15">EECOM    GO</text></g>
+  <g stroke="#d9e9d2" stroke-width="2"><path d="M49 174V82m0 92h166"/><path d="m52 96 28 7 15 16 29 6 21 22 20 2 25 16 21 2"/><path d="M52 96h159" stroke="#d3b86d" stroke-dasharray="4 5"/></g>
+  <path d="M0 225h1100" stroke="#7f8677" stroke-width="9"/>
+  <g stroke="#6c776a" stroke-width="3">
+    <path d="m24 254 18-25h226l18 25v56H24zM302 254l18-25h226l18 25v56H302zM580 254l18-25h226l18 25v56H580zM858 254l18-25h200l18 25v56H858z" fill="#babfaf"/>
+    <path d="M38 256h234v17H38zM316 256h234v17H316zM594 256h234v17H594zM872 256h208v17H872z" fill="#dfe2cf"/>
+    <path d="M49 279h77v25H49zM153 279h77v25h-77zM327 279h77v25h-77zM431 279h77v25h-77zM605 279h77v25h-77zM709 279h77v25h-77zM883 279h77v25h-77z" fill="#233c35"/>
+  </g>
+  <g fill="#354a3a" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle"><text x="151" y="269">CAPCOM</text><text x="429" y="269">FIDO</text><text x="707" y="269">EECOM</text><text x="978" y="269">FLIGHT</text></g>
+  <g fill="#e7e9d4"><circle cx="256" cy="291" r="4"/><circle cx="534" cy="291" r="4"/><circle cx="812" cy="291" r="4"/><circle cx="1047" cy="290" r="4"/></g>
+  <g fill="#9f3931"><circle cx="244" cy="291" r="4"/><circle cx="522" cy="291" r="4"/><circle cx="800" cy="291" r="4"/><circle cx="1035" cy="290" r="4"/></g>
+</svg>

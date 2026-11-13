@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 260" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="#ffffffb3"><ellipse cx="189" cy="20" rx="33" ry="13"/><ellipse cx="232" cy="36" rx="24" ry="14"/><ellipse cx="159" cy="35" rx="21" ry="13"/></g>
+  <path d="m17 249 57-35h184l30 35m-239-17h225m-237 14h246" stroke="#757d7e" stroke-width="5"/>
+  <g stroke="#20384a" stroke-width="4">
+    <path d="M53 82h78v105H53z" fill="#2473b9"/>
+    <path d="M46 78q41-20 92 0v10H46z" fill="#243b4d"/>
+    <path d="M67 95h24v34H67z" fill="#b6e6ed"/>
+    <path d="M128 114h97v82h-97z" fill="#2a85c5"/>
+    <path d="M75 144h91v53H75z" fill="#398fd1"/>
+    <path d="M84 151h69v33H84z" stroke="#e84e48" stroke-width="3"/>
+    <path d="M116 156v22m-7-17 7-6m-8 23h17" stroke="#ffdb69" stroke-width="5"/>
+    <path d="M158 91h27v39h-27z" fill="#242d35"/>
+    <path d="M153 84h37v13h-37z" fill="#242d35"/>
+    <ellipse cx="211" cy="151" rx="43" ry="47" fill="#222f3c"/>
+    <ellipse cx="211" cy="151" rx="34" ry="37" fill="#d6d9d8" stroke="#919c9d" stroke-width="3"/>
+    <path d="m192 132 10-3m15 0 10 4" stroke="#5b666c" stroke-width="3"/>
+    <ellipse cx="199" cy="143" rx="5" ry="8" fill="white" stroke="none"/><ellipse cx="221" cy="143" rx="5" ry="8" fill="white" stroke="none"/>
+    <ellipse cx="200" cy="144" rx="3" ry="5" fill="#313c43" stroke="none"/><ellipse cx="220" cy="144" rx="3" ry="5" fill="#313c43" stroke="none"/>
+    <path d="m210 146-3 10 7 1" stroke="#929d9f" stroke-width="2"/>
+    <path d="M195 164q15 20 30 0-15 5-30 0z" fill="white" stroke="#707b80" stroke-width="2"/>
+    <path d="M42 191h214v16H42z" fill="#dc4440"/>
+    <g fill="#237cba"><circle cx="73" cy="214" r="16"/><circle cx="119" cy="214" r="16"/><circle cx="164" cy="214" r="16"/></g>
+    <path d="M73 214h91" stroke="#b2c0c2" stroke-width="6"/>
+    <path d="M180 197h94v15h-94z" fill="#dd4842"/>
+    <g fill="#282e33"><circle cx="191" cy="204" r="8"/><circle cx="264" cy="204" r="8"/></g>
+    <path d="M229 210v13" stroke-width="7"/>
+    <path d="M210 217h36l-7 9h-22z" fill="#1f2f3b"/>
+  </g>
+  <path d="M23 50h80v22H23z" fill="#f5efd9" stroke="#276146" stroke-width="3"/>
+  <text x="63" y="66" text-anchor="middle" fill="#276146" font-family="Georgia,serif" font-weight="bold" font-size="14">SODOR</text>
+  <path d="M31 73v48m64-48v28" stroke="#276146" stroke-width="4"/>
+</svg>
