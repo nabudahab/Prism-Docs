@@ -87,7 +87,7 @@
     '#/reference/platformio': 'Project options, packages and toolchain',
     '#/tools/peripheral-docs': 'A register reference from your own TOML',
     '#/tools/peripheral-docs-contract': 'What the generator reads and writes',
-    '#/roadmap': 'Implemented, in development and planned'
+    '#/roadmap': 'Implemented, planned and known issues'
   };
 
   var SECTION_TITLES = { start: 'Start', tutorials: 'Tutorials', architecture: 'Architecture', guides: 'Guides',

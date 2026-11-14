@@ -25,7 +25,7 @@
     {
       "id": "soc",
       "title": "Copy the SoC manifest",
-      "text": "Copy the supplied SoC manifest to `local/soc.toml`. This one file describes your hardware: the core, the memory sizes and the peripherals. Check it, then run the RAM test.",
+      "text": "Copy the supplied SoC manifest to `local/soc.toml`. It names the tile, fabric, memory map and peripherals that make up your hardware. Check it, then run the RAM test.",
       "guide": [
         {
           "doc": "docs/getting-started.md",
@@ -75,11 +75,11 @@
     {
       "id": "simulate",
       "title": "Run a C program in simulation",
-      "text": "Build the blink program with Make and run it on your SoC in the simulator, before any board is involved.",
+      "text": "Create the firmware application from your SoC manifest, build the greeting and blink program, and run it on your SoC in the simulator before any board is involved. Leave step 1's upload until the board stages.",
       "guide": [
         {
           "doc": "docs/firmware.md",
-          "section": "2. Blink with Make"
+          "section": "1. Blink with PlatformIO"
         },
         {
           "doc": "docs/firmware.md",

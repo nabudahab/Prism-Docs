@@ -1,7 +1,7 @@
 /* Hazard3 three-stage pipeline model (upstream Hazard3 v1.0-rc1, Prism's
  * profile): geometry, RTL notes and the per-cycle frame. Two configurations:
- * `hazard3` is Prism's tile (AHB ports through ahb_to_blocking to
- * cache_fabric_if); `hazard3_ahb` connects the same hazard3_tile's AHB ports
+ * `hazard3` is Prism's tile (AHB ports through cache_adapter and the
+ * supplied tile's uncached transports to cache_fabric_if); `hazard3_ahb` connects the same hazard3_tile's AHB ports
  * straight to the website bench's AHB memory. core-trace-compiler.js
  * produces the compiled view it reads. */
 (function () {
@@ -81,11 +81,11 @@
       info: { kind: 'Control', title: 'WFI and sleep', text: ['WFI stalls in M until a locally enabled interrupt is pending. In Prism’s simulation benches, `+FINISH_ON_WFI` ends the run when WFI sleeps with all `mie` bits clear and the frontend has drained (the `halt` macro). That terminal marker is in Prism’s tile wrapper, not in upstream Hazard3.'], src: [U + 'hazard3_power_ctrl.v', H + 'hazard3_tile.sv · verification_halted'] } },
 
     iport: { kind: 'mem', x: 120, y: 852, w: 230, h: 56, label: 'Instruction port', sub: 'ahb_to_blocking.sv', layer: 'mem', badgeX: 172,
-      info: { kind: 'Adapter', title: 'Instruction port', text: ['Hazard3’s AHB instruction port, converted by Prism’s adapter to the blocking `cache_fabric_if` instruction channel. Each 32-bit fetch is one 64-bit beat; the adapter picks the addressed half. There is no I-cache.'], src: [H + 'ahb_to_blocking.sv', H + 'core_tile.sv'] },
+      info: { kind: 'Adapter', title: 'Instruction port', text: ['Hazard3’s AHB instruction port, converted by Prism’s adapter for the tile’s instruction cache slot. The supplied tile sets `instruction_cache = false`, so an uncached transport carries each fetch to the blocking `cache_fabric_if` instruction channel. Each 32-bit fetch is one 64-bit beat; the adapter picks the addressed half. There is no I-cache.'], src: [H + 'cache_adapter.sv', H + 'ahb_to_blocking.sv', 'source/caches/uncached/rtl/uncached_instruction.sv'] },
       variantSub: { hazard3_ahb: 'AHB5 · no adapter' },
       variantInfo: { hazard3_ahb: { kind: 'Port', title: 'Instruction port', text: ['Hazard3’s AHB instruction port, connected straight to the bench memory without Prism’s adapter. The address phase goes out in one cycle and, with no wait states, the word returns in the next while the following address goes out, so fetch can deliver one 32-bit word per cycle. There is no I-cache.'], src: [U + 'hazard3_cpu_2port.v', 'qa/core-diagrams (website bench)'] } } },
     dport: { kind: 'mem', x: 1160, y: 852, w: 320, h: 56, label: 'Data port', sub: 'ahb_to_blocking.sv · exclusives', layer: 'mem',
-      info: { kind: 'Adapter', title: 'Data port', text: ['The AHB data port, converted to the blocking data channel with byte masks. The address phase is accepted from X; the data phase completes in M. The adapter also keeps the LR/SC reservation (installed cacheable RAM only, 16-byte granule). There is no D-cache.'], src: [H + 'ahb_to_blocking.sv', H + 'core_tile.sv'] },
+      info: { kind: 'Adapter', title: 'Data port', text: ['The AHB data port, converted for the tile’s data cache slot with byte masks. The address phase is accepted from X; the data phase completes in M. Each load or store first presents a D-cache probe, so its beat starts a cycle later; the supplied tile sets `data_cache = false`, and an uncached transport carries the beat to the data channel. The adapter also keeps the LR/SC reservation (installed cacheable RAM only, 16-byte granule); an ordinary store to that granule clears it, even when accepted on the edge the LR completes. There is no D-cache.'], src: [H + 'cache_adapter.sv', H + 'ahb_to_blocking.sv', 'source/caches/uncached/rtl/uncached_data.sv'] },
       variantSub: { hazard3_ahb: 'AHB5 · exclusives' },
       variantInfo: { hazard3_ahb: { kind: 'Port', title: 'Data port', text: ['The AHB data port, connected straight to the bench memory. The address phase is accepted from X; the data phase completes in M, in the next cycle with no wait states. The bench memory keeps the LR/SC reservation that Prism’s data adapter would otherwise hold. There is no D-cache.'], src: [U + 'hazard3_cpu_2port.v', 'qa/core-diagrams (website bench)'] } } },
     mem: { kind: 'box', x: 620, y: 952, w: 360, h: 38, label: 'Bench memory', layer: 'mem',

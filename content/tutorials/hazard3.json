@@ -3,18 +3,18 @@
   "key": "hazard3",
   "title": "Use Hazard3",
   "nav_title": "Use Hazard3",
-  "lede": "Run the upstream Hazard3 CPU in a Prism SoC: fetch the tested Hazard3 version, select it in your SoC manifest, test it and build it for the board.",
+  "lede": "Run the upstream Hazard3 CPU in a Prism SoC: fetch the tested Hazard3 version, select it in your tile manifest, test it and build it for the board.",
   "audience": "rtl",
   "prerequisites": [
     "The tools from [Install tools and run a simulation](#/guides/getting-started#1-install-the-tools). You also need Git to fetch the Hazard3 source.",
     "A SoC manifest, as in [Build a SoC and run a program on it](#/tutorials/instantiate-core)."
   ],
-  "outcome": "A SoC that runs unmodified upstream Hazard3 with Prism's memory and peripherals, in simulation and on the board.",
+  "outcome": "A SoC that runs the pinned upstream Hazard3 with Prism's memory and peripherals, in simulation and on the board.",
   "stages": [
     {
       "id": "source",
       "title": "Fetch the Hazard3 source",
-      "text": "Prism does not include Hazard3's source. Fetch the tested version into the place the build expects. The build then patches a copy of it for the simulator; you do nothing more unless you update Hazard3.",
+      "text": "Prism does not include Hazard3's source. Fetch the tested version into the place the build expects. Each build checks it against recorded checksums and adapts a copy; keep your copy unmodified.",
       "guide": [
         {
           "doc": "docs/hazard3.md",
@@ -24,8 +24,8 @@
     },
     {
       "id": "select",
-      "title": "Select Hazard3 in your SoC manifest",
-      "text": "Selecting Hazard3 is the same one-key edit as for any other core.",
+      "title": "Select Hazard3 in your tile manifest",
+      "text": "Selecting Hazard3 is the same one-line edit to `local/tile.toml` as for any other core.",
       "guide": [
         {
           "doc": "docs/configuration.md",
@@ -42,7 +42,7 @@
     {
       "id": "test",
       "title": "Test the connection",
-      "text": "Hazard3 speaks AHB; Prism connects it through an adapter on each memory port. Lint the SoC and run the adapter test.",
+      "text": "Hazard3 speaks AHB; Prism connects each of its memory ports through an adapter. Check and lint the SoC, then run the adapter bench and Hazard3's component tests.",
       "guide": [
         {
           "doc": "docs/hazard3.md",
@@ -53,7 +53,7 @@
     {
       "id": "firmware",
       "title": "Run firmware",
-      "text": "Prism compiles firmware for the instruction set Hazard3 is built with, including multiply, atomics and compressed instructions. Run a program in simulation before building for the board.",
+      "text": "The SDK compiles firmware for the ISA string in Hazard3's core manifest, a subset of what the hardware implements; the default includes multiply, atomics and compressed instructions. Run a program in simulation before building for the board.",
       "guide": [
         {
           "doc": "docs/hazard3.md",
@@ -68,15 +68,19 @@
     {
       "id": "board",
       "title": "Build it for the board",
-      "text": "Hazard3 needs a lower CPU clock than Base on this board. Set the clock in your system manifest, then build and program.",
+      "text": "Build the system manifest for the board as for Base, then rebuild and upload your firmware for the new core. If routed timing fails, lower the CPU clock and build again.",
       "guide": [
         {
-          "doc": "docs/fpga.md",
-          "section": "2. Handle a clock or timing failure"
+          "doc": "docs/configuration.md",
+          "section": "After a hardware change"
         },
         {
           "doc": "docs/nexys_video_quickstart.md",
           "section": "4. Build and program"
+        },
+        {
+          "doc": "docs/fpga.md",
+          "section": "2. Handle a clock or timing failure"
         }
       ],
       "see": [

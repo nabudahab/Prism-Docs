@@ -80,7 +80,6 @@
         set({ cls: 'csr', rd: rd, rs1: f3 >= 5 ? null : rs1, text: t });
       }
     } else if (op === 0x0f) set({ cls: 'fence', text: f3 === 1 ? 'fence.i' : 'fence' });
-    else if (word === 0xffffffff && profile !== 'hazard3' && profile !== 'hazard3_ahb') set({ cls: 'halt', text: 'halt' });
     if (word === 0 && profile !== 'hazard3' && profile !== 'hazard3_ahb') set({ cls: 'other', text: '0x00000000 (not program code)' });
     return d;
   }
@@ -243,9 +242,11 @@
       var state;
       if (t.ret) state = 'retire';
       else if ('sleep' in t ? t.sleep : !t.fre) state = 'sleep';
-      else if (!t.fre) state = 'wait';
-      else if (!t.fhit) state = 'fetch';
-      else if (t.dre || t.dwe) state = 'data';
+      else if (!t.fre && !t.saved) state = 'wait';
+      else if (t.fre && !t.fhit) state = 'fetch';
+      // A load or store probes the D-cache in its fetch cycle; the datapath then
+      // holds the instruction (saved) until its data beat completes.
+      else if (t.dre || t.dwe || ((t.mr || t.mw) && !t.exc)) state = 'data';
       else if (t.exc) state = 'trap';
       else state = 'wait';
       cur.cells[c] = state;

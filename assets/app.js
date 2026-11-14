@@ -348,7 +348,7 @@
       lede: 'Upstream Hazard3, a three-stage pipeline, with Prism’s configuration. Fetch runs ahead into a two-word queue and assembles instructions by halfword; decode and execute share one stage, with full bypassing, a one-entry branch target buffer and a combinational multiplier; M completes data accesses and writes the register file. The page shows the same program in two memory configurations.',
       program: 'hazard3',
       notes: [
-        '“Prism tile” is Hazard3 as Prism builds it: an adapter converts each of its AHB ports to `cache_fabric_if`. The adapter adds a register, so a memory transfer takes at least two cycles and fetch delivers at most one word every two cycles; D/X often waits for instructions. “Direct AHB memory” connects the same core straight to a memory that answers in the same cycle, which is what Hazard3 is designed for, to show what the adapters cost. Both runs compute the same results.',
+        '“Prism tile” is Hazard3 as Prism builds it: an adapter on each AHB port feeds the instruction and data cache slots that the tile manifest fills (uncached transports in the supplied tile), and those meet `cache_fabric_if`. The adapter registers each transfer, so fetch delivers at most one word every two cycles and D/X often waits for instructions; a load or store also waits one cycle for its D-cache probe before its beat starts. “Direct AHB memory” connects the same core straight to a memory that answers in the same cycle, which is what Hazard3 is designed for, to show what the adapters cost. Both runs compute the same results.',
         'Prism builds Hazard3 v1.0-rc1 with its M, A, C, bit-manipulation and Hazard3-specific extensions enabled; the Hazard3 guide lists them. The default compiler ISA includes its supported bit-manipulation extensions and omits Zcb/Zcmp because the pinned GCC 13.2 toolchain rejects those names. The editor here accepts `rv32im_zicsr_zifencei` mnemonics and never compresses them; raw `.half` and `.word` data can still hold compressed instructions, which the core executes.',
         'Instructions are coloured from D/X on. “Retired” in the chart means the instruction left M normally.',
         'The animation replays a simulation of the RTL in which memory answers one cycle after a request, as for the other cores.'
@@ -404,7 +404,6 @@
     core: {
       what: 'datapath',
       brief: function () { return 'Shown: Base tile, `rv32im_zicsr_zifencei`, `DIV_BITS = 3`, 128 B I-cache, 256 B two-way D-cache, four-entry store queue.'; },
-      status: 'The retirement timing shown follows Base’s rising-edge retirement change, which is still in development and not yet in Prism’s main branch. On main, Base writes GPRs and CSRs on the falling clock edge; the guides describe that version.',
       rows: function () {
         return DEMO_TILE_ROWS.concat([
           ['Core', '`core.toml` `[microarchitecture]`, passed to `core_uarch_pkg.vh`', '`DIV_BITS`', '`3` quotient bits per divider cycle'],
@@ -429,7 +428,7 @@
       brief: function () { return 'Shown: Base tile, `uart0` and `gpio0` behind `irq0`, peripherals on their own 100 MHz clock, 64 KiB RAM, 4 KiB boot ROM.'; },
       rows: function () {
         return [
-          ['System', '`configs/system.toml`, copied to `local/system.toml`', '`[clocks]`, `[socs.mcu]`', '`cpu = 25`, `peripheral = 100` MHz; separate clocks set `ASYNC_PERIPHERALS = 1`'],
+          ['System', '`local/system.toml`, created in the configuration guide', '`[clocks]`, `[socs.mcu]`', '`cpu = 25`, `peripheral = 100` MHz; separate clocks set `ASYNC_PERIPHERALS = 1`'],
           ['SoC', '`configs/base.toml`, copied to `local/soc.toml`', '`[peripherals]`', '`uart0`, `gpio0`, `irq0` (the `spi0` and `timer0` blocks deleted)'],
           ['SoC', '`local/soc.toml`', '`[components]`', '`system_bus` = blocking, `peripheral_bus` = mmio'],
           ['Memory map', '`source/soc/memory.toml`', '`[interrupts]`', '`gpio_a = 0` (gpio0), `uart = 2` (uart0)'],
@@ -438,7 +437,7 @@
           DEMO_DCACHE_ROW, demoQueueRow(4),
           ['Core', '`source/core_tiles/base/core.toml`', '`isa`', '`rv32im_zicsr_zifencei` (Base tile)']];
       },
-      build: ['Create `local/soc.toml` and `local/system.toml` from the supplied manifests, then delete the `[peripherals.spi0]` and `[peripherals.timer0]` blocks from `local/soc.toml`. Keep `uart0` and `irq0`: the ROM loader and external interrupts need them.', 'Interrupt source numbers come from the memory map; device priority is an irq0 register, not a manifest key.'],
+      build: ['Copy the supplied SoC manifest to `local/soc.toml` and create `local/system.toml` as the configuration guide shows, then delete the `[peripherals.spi0]` and `[peripherals.timer0]` blocks from `local/soc.toml`. Keep `uart0` and `irq0`: the ROM loader and external interrupts need them.', 'Interrupt source numbers come from the memory map; device priority is an irq0 register, not a manifest key.'],
       links: [['#/guides/configuration#1-create-your-soc-manifest', 'Create your SoC manifest'], ['#/guides/configuration#2-create-your-system-manifest', 'Create your system manifest'], ['#/guides/configuration#7-add-or-remove-a-peripheral', 'Add or remove a peripheral']]
     }
   };
@@ -807,7 +806,7 @@
         h('p', { class: 'empty', text: 'The address map has no accelerator interrupt sources.' }));
   }
 
-  /* ---------- Roadmap (pinned copy of Prism's status and planned work) ---------- */
+  /* ---------- Roadmap (pinned copy of Prism's status, planned work and known issues) ---------- */
 
   function inlineCode(text) {
     // Roadmap cells are plain text with `code` spans; render spans as <code>.
@@ -830,9 +829,9 @@
       return h('span', { class: 'status-badge status-' + value.toLowerCase().replace(/\s+/g, '-'), text: value });
     }
     return h('div', { class: 'page' },
-      pageHeader('Roadmap', 'What Prism implements today, what is in development, and the work planned next.'),
+      pageHeader('Roadmap', 'What Prism implements today, what is in development, the work planned next and the known issues.'),
 
-      h('h2', { text: 'Current status' }),
+      h('h2', { id: 'status', text: 'Current status' }),
       h('p', { class: 'section-intro' }, ['Implemented', 'In development', 'WIP', 'Partial', 'Planned'].filter(function (k) { return counts[k]; }).map(function (k, i) {
         return [i ? ' · ' : '', String(counts[k]) + ' ' + (k === 'WIP' ? k : k.toLowerCase())];
       }), '.'),
@@ -843,14 +842,28 @@
             h('p', { class: 'status-area' }, row.area === 'Memory-mapped hardware accelerators' ? h('a', { href: '#/architecture/accelerators', text: row.area }) : inlineCode(row.area))));
       })),
 
-      h('h2', { text: 'Planned development' }),
+      h('h2', { id: 'planned-development', text: 'Planned development' }),
       h('p', { class: 'section-intro', text: 'Each workstream names the capability it adds and where the work starts.' }),
       h('ol', { class: 'plan-grid' }, R.planned.map(function (item) {
         return h('li', { class: 'plan-card panel' },
           h('h3', null, inlineCode(item.workstream)),
           h('p', { class: 'plan-capability' }, inlineCode(item.capability)),
           h('p', { class: 'plan-notes' }, inlineCode(item.notes)));
-      })));
+      })),
+
+      (R.known_issues || []).length ? [
+        h('h2', { id: 'known-issues', text: 'Known issues' }),
+        h('p', { class: 'section-intro', text: 'Known problems, with the Prism file or guide each one concerns.' }),
+        h('ul', { class: 'issue-list' }, R.known_issues.map(function (item) {
+          return h('li', null,
+            h('p', { class: 'issue-area' }, inlineCode(item.area)),
+            h('p', { class: 'issue-text' }, inlineCode(item.issue)),
+            item.references.length ? h('p', { class: 'issue-refs' }, h('span', { class: 'issue-refs-label', text: 'Where: ' }),
+              item.references.map(function (ref, i) {
+                return [i ? ', ' : '', ref.href ? h('a', { href: ref.href }, inlineCode(ref.text)) :
+                  ref.path ? [inlineCode(ref.text), ' (', h('code', { text: ref.path }), ')'] : inlineCode(ref.text)];
+              })) : null);
+        }))] : null);
   }
 
   /* ---------- Views ---------- */
@@ -941,7 +954,7 @@
       reference,
       h('nav', { class: 'home-more', 'aria-label': 'Project' },
         h('a', { href: '#/guides' }, h('strong', { text: 'Guides' }), h('span', { text: 'Prism’s guides, from first steps to verification.' })),
-        h('a', { href: '#/roadmap' }, h('strong', { text: 'Roadmap' }), h('span', { text: 'What is implemented, in development and planned.' }))));
+        h('a', { href: '#/roadmap' }, h('strong', { text: 'Roadmap' }), h('span', { text: 'What is implemented, in development and planned, and the known issues.' }))));
   }
 
   function architectureView() {
@@ -1797,6 +1810,12 @@
     closeNav(false);
     if (match.route.path === 'guides' && match.fragment && window.PrismGuides) {
       window.PrismGuides.reveal(match.fragment);
+      return;
+    }
+    // Roadmap sections (#/roadmap#known-issues) are linked from the guides.
+    var section = match.route.path === 'roadmap' && match.fragment ? document.getElementById(match.fragment) : null;
+    if (section) {
+      section.scrollIntoView();
       return;
     }
     if (!initial && (!match.param || match.route.path === 'guides')) {

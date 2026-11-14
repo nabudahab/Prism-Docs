@@ -31,7 +31,7 @@
     {
       "id": "pins",
       "title": "Connect signals to board pins",
-      "text": "Each line under `[board.pins]` names a board resource and the SoC signal it carries. Move GPIO from the LEDs to a PMOD connector to see how one edit changes the wiring.",
+      "text": "Each line under `[board.pins]` names a board resource and the SoC signal it carries. Move GPIO from the LEDs to a PMOD connector to see how one edit changes the wiring, or route the onboard buttons and switches to a second GPIO bank.",
       "guide": [
         {
           "doc": "docs/configuration.md",
@@ -65,7 +65,7 @@
     {
       "id": "program",
       "title": "Build and program the board",
-      "text": "Check and lint the system first, since both are fast; then build the bitstream and program the FPGA.",
+      "text": "Check and lint the system first, since both are fast; then build the bitstream and program the FPGA. Run `check` before `bitstream`, not after it.",
       "guide": [
         {
           "doc": "docs/fpga.md",
@@ -80,7 +80,7 @@
     {
       "id": "second-soc",
       "title": "Add a second SoC",
-      "text": "A second SoC is a second entry in the system manifest. The two SoCs share no memory. A UART bridge lets both use the one USB serial cable.",
+      "text": "A second SoC is a second entry in the system manifest. The two SoCs share no memory. A UART bridge lets both use the one USB serial cable, and a small manifest that extends yours can give the second SoC a different core.",
       "guide": [
         {
           "doc": "docs/configuration.md",
@@ -91,7 +91,7 @@
     {
       "id": "upload",
       "title": "Upload a program to each SoC",
-      "text": "Export the software target for each SoC, build a program against it and upload. With a bridge, the upload command names the SoC to load.",
+      "text": "Export an SDK from a SoC manifest, build the application and upload it through your system manifest. With a UART bridge, one upload reaches every SoC on the bridge; naming one instance replaces only that SoC's program.",
       "guide": [
         {
           "doc": "docs/uart_upload.md",

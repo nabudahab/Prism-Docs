@@ -495,6 +495,9 @@
     renderPager(now);
     renderRail(now);
     if (now.fragment && now.section === 'guides' && window.PrismGuides) window.PrismGuides.reveal(now.fragment);
+    // Roadmap sections (#/roadmap#known-issues) are linked from the guides.
+    var section = now.fragment && now.path === 'roadmap' ? document.getElementById(now.fragment) : null;
+    if (section) section.scrollIntoView({ block: 'start' });
   });
   K.start();
 })();

@@ -14,7 +14,7 @@
     {
       "id": "ports",
       "title": "Read what a tile must connect to",
-      "text": "A tile is a core plus whatever sits between it and memory. Every tile has the same ports: an instruction channel and a data channel to the memory fabric, interrupt inputs, and halt and flush signals.",
+      "text": "A tile is a core plus whatever sits between it and memory. Every tile has the same ports: an instruction channel and a data channel to the memory fabric, interrupt inputs, a retirement report, and halt and flush signals.",
       "guide": [
         {
           "doc": "docs/interfaces.md",

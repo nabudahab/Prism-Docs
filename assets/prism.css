@@ -639,6 +639,13 @@ h1[tabindex="-1"]:focus { outline: none; }
 .status-planned { color: var(--muted); border-style: dashed; }
 @media (max-width: 520px) { .status-list li { grid-template-columns: 1fr; } }
 
+.issue-list { list-style: none; margin: 1rem 0 0; padding: 0; border-top: 1px solid var(--rule); }
+.issue-list li { padding: 0.8rem 0; border-bottom: 1px solid var(--rule); }
+.issue-list p { margin: 0; }
+.issue-area { font-weight: 600; }
+.issue-text { margin-top: 0.25rem !important; }
+.issue-refs { margin-top: 0.3rem !important; font-size: 0.9em; color: var(--muted); }
+.issue-refs-label { font-weight: 600; }
 .plan-grid { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 1rem; }
 .plan-card { padding: 1.1rem 1.2rem 1.2rem; }
 .plan-card h3 { font-size: 1.05rem; }

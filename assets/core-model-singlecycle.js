@@ -12,7 +12,7 @@
     add4: { kind: 'add', x: 190, y: 118, w: 46, h: 56, label: '+4', tx: 4,
       info: { kind: 'Adder', title: 'PC + 4', text: ['Sequential successor. Feeds the next-PC selector and the write-back selector (link value for JAL/JALR).'], src: [DP + ' · pc_mux, writeback_mux'] } },
     fetch: { kind: 'mem', x: 190, y: 270, w: 120, h: 100, label: 'Instruction', sub: 'port · icache_if', badgeX: 262,
-      info: { kind: 'Interface', title: 'Instruction port (icache_if)', text: ['The datapath drives `read_enable` and `address = pc`. The memory side answers with `hit` and `read_data`, or `access_fault`.', 'Without a hit the instruction cannot retire, so PC and the instruction’s effects wait. `read_enable` drops while halted, sleeping in WFI, or taking an interrupt.'], src: ['source/core_tiles/singlecycle/rtl/interfaces/icache_if.vh', DP] } },
+      info: { kind: 'Interface', title: 'Instruction port (icache_if)', text: ['The datapath drives `read_enable` and `address = pc`. The memory side answers with `hit` and `read_data`, or `access_fault`.', 'Without a hit the instruction cannot retire, so PC and the instruction’s effects wait. `read_enable` drops while halted, sleeping in WFI, taking an interrupt, or holding a load, store or fence instruction.'], src: ['source/contracts/interfaces/icache_if.vh', DP] } },
     control: { kind: 'ctl', x: 370, y: 66, w: 150, h: 64, label: 'Control', sub: 'control.sv',
       info: { kind: 'Decoder', title: 'Control (decode)', text: ['Combinational opcode/funct decoder producing `decode_control_t`: ALU operation and operand selects, `reg_src`, `pc_src`, memory read/write and size, CSR, MRET, WFI, FENCE.I, ECALL/EBREAK and `illegal`.', 'Decoded side effects are qualified by `retire` in the datapath, so a trap or memory wait suppresses them.'], src: [U + 'control.sv', 'source/core_tiles/singlecycle/rtl/packages/control_types_pkg.vh'] } },
     rf: { kind: 'box', x: 390, y: 270, w: 130, h: 150, label: 'Register file', sub: '32 × 32 bit', ty: 35, badgeY: 424,
@@ -31,10 +31,10 @@
     pcimm: { kind: 'add', x: 590, y: 118, w: 46, h: 56, label: '+', tx: 4,
       info: { kind: 'Adder', title: 'PC + immediate', text: ['Target for JAL and taken conditional branches.'], src: [DP + ' · pc_mux'] } },
     pcmux: { kind: 'mux', x: 890, y: 66, w: 24, h: 150, label: '',
-      pins: [[886, 78, 'pc+4', 'end'], [886, 103, 'mepc', 'end'], [886, 128, 'pc+imm', 'end'], [886, 153, 'jalr', 'end'], [886, 178, 'pc', 'end']],
-      info: { kind: 'Selector', title: 'Next PC', text: ['Starts from PC+4. `pc_src = BRANCH` selects PC+imm for JAL or a taken branch; `PC_JALR` selects the ALU result with bit 0 cleared. MRET selects `mepc`; HALT holds the current PC.'], src: [DP + ' · pc_mux'] } },
+      pins: [[886, 78, 'pc+4', 'end'], [886, 103, 'mepc', 'end'], [886, 128, 'pc+imm', 'end'], [886, 153, 'jalr', 'end']],
+      info: { kind: 'Selector', title: 'Next PC', text: ['Starts from PC+4. `pc_src = BRANCH` selects PC+imm for JAL or a taken branch; `PC_JALR` selects the ALU result with bit 0 cleared. MRET selects `mepc`.'], src: [DP + ' · pc_mux'] } },
     dport: { kind: 'mem', x: 822, y: 280, w: 108, h: 110, label: 'Data port', sub: 'dcache_if', badgeX: 866,
-      info: { kind: 'Interface', title: 'Data port (dcache_if)', text: ['Address is the ALU result; store data is `rdat2`. Read/write enables assert only when the fetched instruction is valid and passed decode, target and alignment checks.', 'The memory side answers with `hit`, read data (low-justified) or `access_fault`. Without `hit` the instruction cannot retire.'], src: ['source/core_tiles/singlecycle/rtl/interfaces/dcache_if.vh', DP] } },
+      info: { kind: 'Interface', title: 'Data port (dcache_if)', text: ['In a load or store’s fetch cycle, once decode, target and alignment checks pass, the datapath presents the ALU result as a probe address (`probe_accept`). At that edge it holds the instruction and captures the address, store data (`rdat2`) and size; the read or write enable then asserts from those held fields.', 'The memory side answers with `hit`, read data (low-justified) or `access_fault`. Without `hit` the instruction cannot retire.'], src: ['source/contracts/interfaces/dcache_if.vh', DP] } },
     ldx: { kind: 'box', x: 960, y: 343, w: 100, h: 44, label: 'Load extend', sub: 'size, unsigned',
       info: { kind: 'Datapath', title: 'Load extension', text: ['The memory path right-justifies byte and halfword data; this block sign- or zero-extends it by `size` and `load_unsigned`.'], src: [DP + ' · load_extension'] } },
     wbmux: { kind: 'mux', x: 1120, y: 275, w: 26, h: 180, label: '',
@@ -46,12 +46,12 @@
       info: { kind: 'Control', title: 'Synchronous exceptions and interrupts', text: ['Exception priority: PC alignment, fetch fault, illegal/CSR, ECALL, EBREAK, next-PC alignment, data alignment, then data response fault. Pre-access checks suppress the data enables.', 'An enabled pending interrupt is taken only between instructions (`instruction_active` low). `mtvec` mode 1 vectors interrupts only.'], src: [DP + ' · synchronous_exceptions, interrupt_priority'] } },
     retire: { kind: 'ctl', x: 180, y: 206, w: 100, h: 34, label: 'retire', layer: 'ctl', badgeX: 306, badgeY: 215,
       info: { kind: 'Control', title: 'Retire', text: ['`retire = instruction_valid && !exception && (!memory_op || data.hit) && (!fence_i || data.flushed)`.', 'It enables the PC update, register write, CSR commit and the retirement report. Without it, the resident instruction simply waits.'], src: [DP + ' · retire'] } },
-    adapter: { kind: 'mem', x: 190, y: 600, w: 740, h: 70, label: 'Cacheless adapter', sub: 'caches.sv: fetch passes through; a memory instruction is saved while its registered data beat completes', layer: 'mem', variant: 'singlecycle',
-      info: { kind: 'Memory side', title: 'Cacheless adapter', text: ['Fetch goes straight to the fabric. When the fetched instruction is a load or store, the adapter saves the instruction and registers one 64-bit data beat; the instruction retires on the edge that beat completes.', 'Each memory instruction therefore takes an instruction beat and then a data beat.'], src: ['source/core_tiles/singlecycle/rtl/caches.sv'] } },
+    adapter: { kind: 'mem', x: 190, y: 600, w: 740, h: 70, label: 'Uncached transports', sub: 'an idle channel forwards each request; a beat still waiting at the rising edge is saved until it completes', layer: 'mem', variant: 'singlecycle',
+      info: { kind: 'Memory side', title: 'Uncached transports', text: ['With `instruction_cache` and `data_cache` set to `false`, the tile uses Prism’s uncached transports. Fetch goes straight to the fabric. A load or store probes in its fetch cycle, the datapath holds the instruction at that edge, and the data request starts in the next cycle; a beat still waiting at a rising edge is saved until the fabric completes it. The instruction retires on the edge that completes its data beat.', 'Each memory instruction therefore takes an instruction beat and then a data beat.'], src: ['source/caches/uncached/rtl/uncached_instruction.sv', 'source/caches/uncached/rtl/uncached_data.sv'] } },
     icache: { kind: 'mem', x: 150, y: 600, w: 230, h: 70, label: 'I-cache', sub: '16 lines × 8 B, direct-mapped', layer: 'mem', variant: 'singlecycle_cached', badgeX: 320,
-      info: { kind: 'Memory side', title: 'Instruction cache', text: ['128 bytes, direct-mapped, two instructions per 8-byte line. A hit completes combinationally; a miss registers one refill beat. FENCE.I invalidates every line after the D-cache flush.'], src: ['source/core_tiles/singlecycle/rtl/caches/icache.sv'] } },
+      info: { kind: 'Memory side', title: 'Instruction cache', text: ['128 bytes, direct-mapped, two instructions per 8-byte line. A hit completes combinationally; a miss registers one refill beat. FENCE.I invalidates every line after the D-cache flush.'], src: ['source/caches/instruction/rtl/icache.sv'] } },
     dcache: { kind: 'mem', x: 700, y: 600, w: 250, h: 70, label: 'D-cache', sub: '8 sets × 2 ways × 16 B\nwrite-back, write-allocate', layer: 'mem', variant: 'singlecycle_cached', ty: -4, badgeX: 790,
-      info: { kind: 'Memory side', title: 'Data cache', text: ['256 bytes, two-way set associative, write-back and write-allocate. Tags are compared on the live address, so a warm access completes in the same cycle. A miss writes back a dirty victim, then refills two 64-bit beats.', 'Addresses outside cacheable RAM bypass allocation as single uncached beats.'], src: ['source/core_tiles/singlecycle/rtl/caches/dcache.sv'] } },
+      info: { kind: 'Memory side', title: 'Data cache', text: ['256 bytes, two-way set associative, write-back and write-allocate. Tags are compared on the live address, so a warm access completes in the same cycle. A miss writes back a dirty victim, then refills two 64-bit beats.', 'Addresses outside cacheable RAM bypass allocation as single uncached beats.'], src: ['source/caches/live_data/rtl/dcache.sv'] } },
     fabric: { kind: 'box', x: 430, y: 724, w: 280, h: 44, label: 'Memory fabric', sub: 'to RAM, ROM and MMIO', layer: 'mem',
       info: { kind: 'Component', title: 'Memory fabric', text: ['Arbitrates the tile’s instruction and data channels onto `system_bus_if`. Data has priority. This diagram stops at the tile boundary.'], src: ['source/memory_fabrics/direct/rtl/cache_fabric.sv'] } }
   };
@@ -63,7 +63,6 @@
     four: W([[170, 163], [190, 163]], 'constant 4', { lab: [[166, 167, '4', 'end']], info: { title: 'Constant 4' } }),
     pc_right: W([[155, 190], [570, 190], [570, 129], [590, 129]], 'pc → PC+imm', { dots: [[155, 190], [570, 190]], lab: [[300, 184, 'pc']], info: { title: 'pc', text: ['PC to the branch/JAL target adder and ALU port A.'] } }),
     pc_muxA: W([[570, 190], [570, 277], [598, 277]], 'pc → ALU port A', { info: { title: 'pc', text: ['Selected for AUIPC.'] } }),
-    pc_hold: W([[570, 190], [876, 190], [876, 184], [890, 184]], 'pc → next PC (hold)', { info: { title: 'pc (hold)', text: ['HALT selects the current PC as its successor.'] } }),
     pc4_top: W([[236, 146], [260, 146], [260, 38], [856, 38], [856, 84], [890, 84]], 'pc+4 → next PC', { lab: [[300, 32, 'pc + 4']], dots: [[856, 38]], vt: [400, 38], info: { title: 'pc + 4', text: ['Default successor.'] } }),
     pc4_wb: W([[856, 38], [1086, 38], [1086, 324], [1120, 324]], 'pc+4 → write-back', { info: { title: 'pc + 4', text: ['Link value written by JAL and JALR.'] } }),
     ins: W([[310, 320], [335, 320]], 'instruction', { arrow: false, info: { title: 'instruction', text: ['`fetch.read_data`: the 32-bit instruction. It is meaningful only with `fetch.hit`.'] } }),
@@ -101,7 +100,7 @@
     ctl_op: W([[700, 232], [700, 276]], 'alu_op', { cls: 'ctl', layer: 'ctl', lab: [[706, 250, 'alu_op']], info: { title: 'alu_op' } }),
     ctl_mem: W([[921, 232], [921, 280]], 'mem_read, mem_write, size', { cls: 'ctl', layer: 'ctl', lab: [[915, 246, 'r/w, size', 'end']], info: { title: 'Memory controls', text: ['`mem_read`, `mem_write`, `size`, gated by the pre-access checks.'] } }),
     ctl_wb: W([[1133, 232], [1133, 278]], 'reg_src, csr', { cls: 'ctl', layer: 'ctl', lab: [[1139, 255, 'reg_src']], info: { title: 'reg_src / csr' } }),
-    ctl_pc: W([[897, 232], [897, 213]], 'pc_src, mret, halt', { cls: 'ctl', layer: 'ctl', info: { title: 'pc_src, mret, halt' } }),
+    ctl_pc: W([[897, 232], [897, 213]], 'pc_src, mret', { cls: 'ctl', layer: 'ctl', info: { title: 'pc_src, mret' } }),
     ret_pc: W([[180, 223], [99, 223], [99, 275]], 'PC write enable', { cls: 'ctl', layer: 'ctl', lab: [[104, 240, 'retire']], info: { title: 'PC write enable', text: ['PC loads on `retire` or trap entry.'] } }),
     fetch_ret: W([[200, 270], [200, 240]], 'fetch.hit', { cls: 'ctl', layer: 'ctl', info: { title: 'fetch.hit' } }),
     // Traps and CSRs
@@ -164,7 +163,8 @@
     function on(id, color, hot) { F.wires[id] = { color: color || COLOR, hot: hot }; }
     function val(id, v) { F.values[id] = hex(v); }
     var cached = variant.key === 'singlecycle_cached';
-    var fetchOK = t.fre && t.fhit;
+    var held = !!t.saved, fetchOK = held || (t.fre && t.fhit);
+    var probe = !held && fetchOK && !t.dre && !t.dwe && (t.mr || t.mw) && !t.exc;
     // The memory side behind a beat on either channel.
     function beats() {
       var I = cached ? 'icache' : 'adapter', D = cached ? 'dcache' : 'adapter';
@@ -180,8 +180,8 @@
       if (t.bir) on('ibeat', WAIT);
       return beats();
     }
-    if (!t.fre) { F.blocks.fetch = { badge: 'fetch off (WFI)' }; return F; }
-    on('pc_fetch'); val('pc_fetch', t.pc);
+    if (!t.fre && !held) { F.blocks.fetch = { badge: t.sleep ? 'fetch off (WFI)' : 'fetch off' }; return F; }
+    if (!held) { on('pc_fetch'); val('pc_fetch', t.pc); }
     F.blocks.pc = { on: true, badge: t.ret ? 'loads ' + hex(t.npc) : 'holds' };
     if (!fetchOK) {
       F.blocks.fetch = { wait: true, badge: cached ? 'I-cache miss' : 'waits for beat' };
@@ -194,9 +194,10 @@
     }
     var k = d ? d.cls : 'other';
     F.tokens.push({ x: 250, y: 395, text: d ? d.text : t.ins, color: COLOR });
-    F.blocks.fetch = { on: true, badge: cached ? 'I-cache hit' : (t.saved ? 'saved' : 'beat done') };
-    // The instruction comes from the cache, or from the beat that completes at this edge.
-    if (cached) { on('fetch_mem'); F.blocks.icache = { on: true, badge: 'hit' }; }
+    F.blocks.fetch = { on: true, badge: held ? 'instruction held' : cached ? 'I-cache hit' : 'beat done' };
+    // The instruction comes from the datapath's hold, the cache, or the beat that completes at this edge.
+    if (held) { /* fetch is off; decode reads the held instruction */ }
+    else if (cached) { on('fetch_mem'); F.blocks.icache = { on: true, badge: 'hit' }; }
     else if (t.bir) { on('fetch_mem'); on('ibeat'); val('ibeat', t.bia); F.blocks.adapter = { on: true }; }
     on('ins_ctl'); val('ins', t.ins);
     F.blocks.control = { on: true };
@@ -225,14 +226,12 @@
     if (k === 'jal') nsel = 'pcimm';
     if (k === 'jalr') nsel = 'jalr';
     if (k === 'mret') nsel = 'mepc';
-    if (k === 'halt') nsel = 'hold';
     var link = t.rw && !t.csr && t.rsrc === 2;
     if (nsel === 'pc4' || link) { on('pc_up'); on('four'); F.blocks.add4 = { on: true }; }
     if (nsel === 'pc4') { on('pc4_top'); val('pc4_top', t.npc); }
     if (nsel === 'pcimm') { on('pcimm_out', HOT, true); val('pcimm_out', t.npc); }
     if (nsel === 'jalr') { on('alu_jalr', HOT, true); }
     if (nsel === 'mepc') { on('mepc', HOT, true); F.blocks.csr = { on: true }; }
-    if (nsel === 'hold') on('pc_hold', HOT, true);
     F.blocks.pcmux = { on: true }; F.blocks.trapmux = { on: true };
     on('next_pc'); val('next_pc', t.npc); on('pc_in');
     // Memory access
@@ -244,9 +243,14 @@
       F.blocks.dport = { on: !waiting, wait: waiting, badge: (t.dwe ? 'store' : 'load') + (waiting ? ' · waits' : ' · done') };
       on('data_mem', waiting ? WAIT : COLOR);
       if (t.bdr || t.bdw) { on('dbeat', WAIT); val('dbeat', t.bda); }
-      if (!cached) F.blocks.adapter = { wait: waiting, on: !waiting, badge: !waiting ? 'data beat done' : (t.saved ? 'data beat in flight' : 'capturing data request') };
+      if (!cached) F.blocks.adapter = { wait: waiting, on: !waiting, badge: waiting ? 'data beat waits' : 'data beat done' };
       if (cached) F.blocks.dcache = waiting ? { wait: true, badge: DSTATE[t.dst] || 'miss' } : { on: true, badge: 'hit' };
       if (t.dre && t.dhit) { loaded = true; on('rdata'); val('rdata', t.drd); F.blocks.ldx = { on: true }; on('ld_wb'); }
+    } else if (probe) {
+      // The probe edge: the access is captured and starts in the next cycle.
+      on('alu_addr', WAIT); on('ctl_mem');
+      F.blocks.dport = { wait: true, badge: (t.mw ? 'store' : 'load') + ' · probe' };
+      if (cached && t.dst) F.blocks.dcache = { wait: true, badge: DSTATE[t.dst] };
     } else if (cached && t.dst) {
       F.blocks.dcache = { wait: true, badge: DSTATE[t.dst] };
       if (t.bdr || t.bdw) on('dbeat', WAIT);
@@ -278,17 +282,15 @@
     var cached = variant.key === 'singlecycle_cached';
     var head = ['Cycle ' + t.c + ' · PC ' + hex(t.pc) + ' · '];
     if (t.halted) {
-      var lastRetired = trace.dyn.filter(function (x) { return x.fate === 'retired'; }).pop();
-      var how = lastRetired && lastRetired.cls === 'halt' ? 'Prism HALT (`0xffffffff`) retired and stops the core.' :
-        'The final WFI retired with interrupts masked. The test bench’s FINISH_ON_WFI option ends the run once the D-cache is flushed; ordinary firmware would sleep until an enabled interrupt is pending.';
+      var how = 'The final WFI retired with interrupts masked. The test bench’s FINISH_ON_WFI option ends the run once the D-cache is flushed; ordinary firmware would sleep until an enabled interrupt is pending.';
       return [['Cycle ' + t.c + ' · halted'], [(cached && (t.dst || t.bdw) ? 'The D-cache writes its dirty lines back to memory (' + (DSTATE[t.dst] || 'write-back') + '). ' : '') + how]];
     }
     if (d) head.push({ text: d.text, color: COLOR });
     var lines = [head];
     if (t.sleep) { lines.push(['Asleep after WFI: fetch is off until an enabled interrupt is pending. This bench raises no interrupts.']); return lines; }
-    if (!t.fre) { lines.push(['Fetch is disabled.']); return lines; }
+    if (!t.fre && !t.saved) { lines.push(['Fetch is disabled.']); return lines; }
     if (t.exc) { lines.push(['Trap: ' + causeText(t.ecause) + '. The instruction does not retire; at the rising edge PC loads the trap target from mtvec, and mepc and mcause are written.']); return lines; }
-    if (!t.fhit) {
+    if (!t.saved && !t.fhit) {
       lines.push([cached ? 'I-cache miss: the cache refills the 8-byte line at `' + hex(t.bia) + '` over the instruction channel. PC, registers and memory keep their values.' :
         'Waiting for the instruction beat from the fabric (the run’s memory latency). PC, registers and memory keep their values; cycle counters still advance.']);
       return lines;
@@ -296,12 +298,20 @@
     var dd = d || { cls: 'other' };
     if ((t.dre || t.dwe) && !t.dhit) {
       if (cached) {
-        var st = ['idle', 'writing back the dirty victim (low beat)', 'writing back the dirty victim (high beat)', 'refilling the line (low beat)', 'refilling the line (high beat)', 'flushing', 'cleaning'][t.dst] || 'waiting';
-        lines.push(['D-cache miss on ' + (t.dwe ? 'store to ' : 'load from ') + '`' + hex(t.dad) + '`: ' + st + '. The instruction cannot retire until `hit`, so PC, registers and memory keep their values.']);
+        var address = parseInt(t.dad, 16) >>> 0;
+        if (!t.dst && (address < 0x80000000 || address >= 0xa0000000)) {
+          lines.push(['Uncached ' + (t.dwe ? 'store to ' : 'load from ') + '`' + hex(t.dad) + '`: the D-cache passes it to the fabric as one beat without allocating a line. The instruction cannot retire until `hit`, so PC, registers and memory keep their values.']);
+        } else {
+          var st = ['the lookup misses, so the line transfer starts at this rising edge', 'writing back the dirty victim (low beat)', 'writing back the dirty victim (high beat)', 'refilling the line (low beat)', 'refilling the line (high beat)', 'flushing', 'cleaning'][t.dst] || 'waiting';
+          lines.push(['D-cache miss on ' + (t.dwe ? 'store to ' : 'load from ') + '`' + hex(t.dad) + '`: ' + st + '. The instruction cannot retire until `hit`, so PC, registers and memory keep their values.']);
+        }
       } else {
-        if (!t.saved) lines.push(['The instruction beat has completed. At this rising edge the adapter saves the instruction and registers its data beat (' + (t.dwe ? 'store to ' : 'load from ') + '`' + hex(t.dad) + '`); the instruction cannot retire yet.']);
-        else lines.push(['The adapter holds the saved instruction while its registered data beat (' + (t.dwe ? 'store to ' : 'load from ') + '`' + hex(t.dad) + '`) waits on the fabric. The instruction retires on the edge that completes it.']);
+        lines.push(['The datapath holds the instruction while its data beat (' + (t.dwe ? 'store to ' : 'load from ') + '`' + hex(t.dad) + '`) waits on the fabric. The instruction retires on the edge that completes it.']);
       }
+      return lines;
+    }
+    if (!t.saved && !t.dre && !t.dwe && (t.mr || t.mw)) {
+      lines.push(['The instruction has arrived. Its ' + (t.mw ? 'store' : 'load') + ' address `' + hex(t.alu) + '` passes the alignment check and goes to the data port as a probe. At this rising edge the datapath holds the instruction and captures the address' + (t.mw ? ', store data' : '') + ' and size; the ' + (cached ? 'D-cache access' : 'data request') + ' starts in the next cycle.']);
       return lines;
     }
     var eff = [];

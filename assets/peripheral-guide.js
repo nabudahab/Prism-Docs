@@ -16,7 +16,7 @@
     { id: 'can', label: 'CAN', title: 'CAN: controller and transceiver', region: 'can',
       summary: 'What the controller does with frames, and the external transceiver it needs.' },
     { id: 'dma', label: 'DMA', title: 'DMA: commands before data movement', region: 'dma',
-      summary: 'The registers accept commands, but no data is moved yet. Why DMA waits for coherent caches.' }
+      summary: 'The registers accept commands, but no data is moved yet, and what a transfer engine needs from the caches.' }
   ];
 
   function forRegion(id) {
@@ -139,8 +139,8 @@
           ['DMA → memory', 'A transfer engine would issue reads and writes as a separate bus master.'],
           ['CPU cache ↔ memory', 'Ownership and visibility must be settled before a future engine accesses cached buffers.']
         ], { caption: 'DMA command and memory boundaries', stack: true }),
-        heading('Coherence comes first'),
-        h('p', { class: 'prose' }, 'A CPU can hold newer buffer contents in a dirty cache line while RAM still has older bytes, and cache_fabric_if is non-coherent. A transfer engine that shares buffers with the CPU therefore needs the ', link('#/architecture/coherent-bus', 'coherent interconnect'), '.')
+        heading('Cached buffers need a contract'),
+        h('p', { class: 'prose' }, 'A CPU can hold newer buffer contents in a dirty cache line while RAM still has older bytes, and cache_fabric_if is non-coherent. The planned transfer engine starts with uncached transfers; sharing cached buffers with the CPU needs the ', link('#/architecture/coherent-bus', 'coherent interconnect'), ' or explicit cache maintenance. The ', link('#/roadmap', 'roadmap'), ' lists the open decisions.')
       ];
     }
 
